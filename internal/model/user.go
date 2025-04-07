@@ -29,7 +29,7 @@ func (user *User) CheckUserPassword(password string) bool {
 }
 
 func (user *User) SetPasswordHash(password string) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 32)
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 	if err != nil {
 		log.Fatal(err.Error())
 	} else {
