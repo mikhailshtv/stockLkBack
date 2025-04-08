@@ -1,8 +1,6 @@
 package model
 
 import (
-	"log"
-
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -28,11 +26,8 @@ func (user *User) CheckUserPassword(password string) bool {
 	return err == nil
 }
 
-func (user *User) SetPasswordHash(password string) {
+func (user *User) SetPasswordHash(password string) error {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 12)
-	if err != nil {
-		log.Fatal(err.Error())
-	} else {
-		user.passwordHash = string(bytes)
-	}
+	user.passwordHash = string(bytes)
+	return err
 }
