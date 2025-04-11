@@ -13,7 +13,7 @@ const (
 )
 
 type Order struct {
-	Id               uint32
+	Id               int
 	Number           int
 	TotalCost        int
 	CreatedDate      time.Time

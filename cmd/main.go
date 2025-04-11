@@ -20,8 +20,10 @@ func inerval() {
 		entityJSON, _ := json.Marshal(entity)
 		ordersJSON, _ := json.Marshal(repository.Orders)
 		productsJSON, _ := json.Marshal(repository.Products)
+		usersJSON, _ := json.Marshal(repository.Users)
 		fmt.Printf("Entity: %v\n", string(entityJSON))
 		fmt.Printf("Orders: %v\n", string(ordersJSON))
 		fmt.Printf("Products: %v\n", string(productsJSON))
+		fmt.Printf("Users: %v\n", string(usersJSON))
 	}
 }

@@ -12,7 +12,7 @@ const (
 )
 
 type User struct {
-	Id           uint32
+	Id           int
 	Login        string
 	passwordHash string
 	FirstName    string

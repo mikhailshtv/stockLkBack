@@ -1,7 +1,7 @@
 package model
 
 type Product struct {
-	Id            uint32
+	Id            int
 	Code          int
 	Quantity      int
 	Name          string
