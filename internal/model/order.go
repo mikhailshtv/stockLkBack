@@ -1,6 +1,8 @@
 package model
 
-import "time"
+import (
+	"time"
+)
 
 type OrderStatus int
 
@@ -11,7 +13,7 @@ const (
 )
 
 type Order struct {
-	Id               int
+	Id               uint32
 	Number           int
 	TotalCost        int
 	CreatedDate      time.Time
