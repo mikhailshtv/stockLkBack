@@ -2,20 +2,19 @@ package repository
 
 import (
 	"golang/stockLkBack/internal/model"
-	"reflect"
 )
 
-var Orders = []model.Order{}
-var Products = []model.Product{}
-var Users = []model.User{}
+var Orders = []*model.Order{}
+var Products = []*model.Product{}
+var Users = []*model.User{}
 
 func CheckAndSaveEntity(entity any) {
-	switch entity.(type) {
+	switch v := entity.(type) {
 	case model.Order:
-		Orders = append(Orders, reflect.ValueOf(entity).Interface().(model.Order))
+		Orders = append(Orders, &v)
 	case model.Product:
-		Products = append(Products, reflect.ValueOf(entity).Interface().(model.Product))
+		Products = append(Products, &v)
 	case model.User:
-		Users = append(Users, reflect.ValueOf(entity).Interface().(model.User))
+		Users = append(Users, &v)
 	}
 }
