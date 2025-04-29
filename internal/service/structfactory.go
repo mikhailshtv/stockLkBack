@@ -91,3 +91,17 @@ func LogAddedEntities() {
 		repository.UsersStruct.EntitiesLen = len(repository.UsersStruct.Entities)
 	}
 }
+
+func Interval() {
+	channel := make(chan any)
+	go func() {
+		for range time.Tick(time.Second * 1) {
+			channel <- NewEntity()
+		}
+	}()
+	go func() {
+		for range channel {
+			repository.CheckAndSaveEntity(<-channel)
+		}
+	}()
+}
