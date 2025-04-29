@@ -1,8 +1,10 @@
 package service
 
 import (
+	"encoding/json"
 	"errors"
 	"golang/stockLkBack/internal/model"
+	"golang/stockLkBack/internal/repository"
 	"log"
 	"time"
 
@@ -61,4 +63,31 @@ func NewUser() model.User {
 		log.Fatal(err.Error())
 	}
 	return user
+}
+
+func LogAddedEntities() {
+	for range time.Tick(time.Millisecond * 200) {
+		ordersJSON, err := json.Marshal(repository.OrdersStruct.SavedEntities())
+		if err != nil {
+			log.Fatal(err.Error())
+		} else if len(repository.OrdersStruct.SavedEntities()) > 0 {
+			log.Printf("Orders: %v\n", string(ordersJSON))
+		}
+		productsJSON, err := json.Marshal(repository.ProductsStruct.SavedEntities())
+		if err != nil {
+			log.Fatal(err.Error())
+		} else if len(repository.ProductsStruct.SavedEntities()) > 0 {
+			log.Printf("Products: %v\n", string(productsJSON))
+		}
+		usersJSON, err := json.Marshal(repository.UsersStruct.SavedEntities())
+		if err != nil {
+			log.Fatal(err.Error())
+		} else if len(repository.UsersStruct.SavedEntities()) > 0 {
+			log.Printf("Users: %v\n", string(usersJSON))
+		}
+
+		repository.OrdersStruct.EntitiesLen = len(repository.OrdersStruct.Entities)
+		repository.ProductsStruct.EntitiesLen = len(repository.ProductsStruct.Entities)
+		repository.UsersStruct.EntitiesLen = len(repository.UsersStruct.Entities)
+	}
 }

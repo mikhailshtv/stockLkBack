@@ -9,7 +9,7 @@ import (
 
 func main() {
 	go inerval()
-	go repository.LogAddedEntities()
+	go service.LogAddedEntities()
 	time.Sleep(time.Second * 20)
 }
 
