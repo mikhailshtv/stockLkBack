@@ -1,11 +1,13 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"golang/stockLkBack/internal/model"
 	"golang/stockLkBack/internal/repository"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/ddosify/go-faker/faker"
@@ -65,43 +67,71 @@ func NewUser() model.User {
 	return user
 }
 
-func LogAddedEntities() {
-	for range time.Tick(time.Millisecond * 200) {
-		ordersJSON, err := json.Marshal(repository.OrdersStruct.SavedEntities())
-		if err != nil {
-			log.Fatal(err.Error())
-		} else if len(repository.OrdersStruct.SavedEntities()) > 0 {
-			log.Printf("Orders: %v\n", string(ordersJSON))
-		}
-		productsJSON, err := json.Marshal(repository.ProductsStruct.SavedEntities())
-		if err != nil {
-			log.Fatal(err.Error())
-		} else if len(repository.ProductsStruct.SavedEntities()) > 0 {
-			log.Printf("Products: %v\n", string(productsJSON))
-		}
-		usersJSON, err := json.Marshal(repository.UsersStruct.SavedEntities())
-		if err != nil {
-			log.Fatal(err.Error())
-		} else if len(repository.UsersStruct.SavedEntities()) > 0 {
-			log.Printf("Users: %v\n", string(usersJSON))
-		}
-
-		repository.OrdersStruct.EntitiesLen = len(repository.OrdersStruct.Entities)
-		repository.ProductsStruct.EntitiesLen = len(repository.ProductsStruct.Entities)
-		repository.UsersStruct.EntitiesLen = len(repository.UsersStruct.Entities)
-	}
-}
-
-func Interval() {
-	channel := make(chan any)
+func LogAddedEntities(ctx context.Context, wg *sync.WaitGroup) {
+	wg.Add(1)
 	go func() {
-		for range time.Tick(time.Second * 1) {
-			channel <- NewEntity()
+		defer wg.Done()
+		for {
+			t := time.NewTicker(time.Millisecond * 200)
+			select {
+			case <-ctx.Done():
+				log.Printf("Received %v signal, shutting down log goroutine \n", ctx.Err().Error())
+				return
+			case <-t.C:
+				ordersJSON, err := json.Marshal(repository.OrdersStruct.SavedEntities())
+				if err != nil {
+					log.Fatal(err.Error())
+				} else if len(repository.OrdersStruct.SavedEntities()) > 0 {
+					log.Printf("Orders: %v\n", string(ordersJSON))
+				}
+				productsJSON, err := json.Marshal(repository.ProductsStruct.SavedEntities())
+				if err != nil {
+					log.Fatal(err.Error())
+				} else if len(repository.ProductsStruct.SavedEntities()) > 0 {
+					log.Printf("Products: %v\n", string(productsJSON))
+				}
+				usersJSON, err := json.Marshal(repository.UsersStruct.SavedEntities())
+				if err != nil {
+					log.Fatal(err.Error())
+				} else if len(repository.UsersStruct.SavedEntities()) > 0 {
+					log.Printf("Users: %v\n", string(usersJSON))
+				}
+
+				repository.OrdersStruct.EntitiesLen = len(repository.OrdersStruct.Entities)
+				repository.ProductsStruct.EntitiesLen = len(repository.ProductsStruct.Entities)
+				repository.UsersStruct.EntitiesLen = len(repository.UsersStruct.Entities)
+			}
 		}
 	}()
+}
+
+func Interval(ctx context.Context, wg *sync.WaitGroup) {
+	channel := make(chan any, 1)
+	wg.Add(1)
 	go func() {
-		for range channel {
-			repository.CheckAndSaveEntity(<-channel)
+		defer wg.Done()
+		for {
+			t := time.NewTicker(time.Second)
+			select {
+			case <-ctx.Done():
+				log.Printf("Received %v signal, shutting down creating entity goroutine \n", ctx.Err().Error())
+				return
+			case <-t.C:
+				channel <- NewEntity()
+			}
+		}
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case <-ctx.Done():
+				log.Printf("Received %v signal, shutting down check and save entity goroutine \n", ctx.Err().Error())
+				return
+			case entity := <-channel:
+				repository.CheckAndSaveEntity(entity)
+			}
 		}
 	}()
 }
