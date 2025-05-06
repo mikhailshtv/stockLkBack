@@ -71,12 +71,13 @@ func LogAddedEntities(ctx context.Context, wg *sync.WaitGroup) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for range time.Tick(time.Millisecond * 200) {
+		for {
+			t := time.NewTicker(time.Millisecond * 200)
 			select {
 			case <-ctx.Done():
 				log.Printf("Received %v signal, shutting down log goroutine \n", ctx.Err().Error())
 				return
-			default:
+			case <-t.C:
 				ordersJSON, err := json.Marshal(repository.OrdersStruct.SavedEntities())
 				if err != nil {
 					log.Fatal(err.Error())
@@ -109,13 +110,13 @@ func Interval(ctx context.Context, wg *sync.WaitGroup) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for range time.Tick(time.Second * 1) {
+		for {
+			t := time.NewTicker(time.Second)
 			select {
 			case <-ctx.Done():
 				log.Printf("Received %v signal, shutting down creating entity goroutine \n", ctx.Err().Error())
-				channel <- nil
 				return
-			default:
+			case <-t.C:
 				channel <- NewEntity()
 			}
 		}
@@ -123,13 +124,13 @@ func Interval(ctx context.Context, wg *sync.WaitGroup) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for range channel {
+		for {
 			select {
 			case <-ctx.Done():
 				log.Printf("Received %v signal, shutting down check and save entity goroutine \n", ctx.Err().Error())
 				return
-			default:
-				repository.CheckAndSaveEntity(<-channel)
+			case entity := <-channel:
+				repository.CheckAndSaveEntity(entity)
 			}
 		}
 	}()
