@@ -42,6 +42,9 @@ func (entity *Entity[T]) SaveToFile(path string) {
 }
 
 func (entity *Entity[T]) RestoreFromFile(path string) {
+	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+		return
+	}
 	entity.Mu.Lock()
 	defer entity.Mu.Unlock()
 	file, err := os.Open(path)
