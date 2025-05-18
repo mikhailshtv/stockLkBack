@@ -57,6 +57,7 @@ func (entity *Entity[T]) RestoreFromFile(path string) {
 		log.Fatalf("Ошибка чтения из файла: %v\n", err.Error())
 	}
 	jsonError := json.Unmarshal(data, &entity.Entities)
+	entity.EntitiesLen = len(entity.Entities)
 	if jsonError != nil {
 		log.Fatalf("Ошибка десериализации: %v\n", jsonError.Error())
 	}
