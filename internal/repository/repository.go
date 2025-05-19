@@ -1,7 +1,12 @@
 package repository
 
 import (
+	"encoding/json"
+	"errors"
 	"golang/stockLkBack/internal/model"
+	"io"
+	"log"
+	"os"
 	"sync"
 )
 
@@ -13,8 +18,49 @@ type Entity[T model.Order | model.Product | model.User] struct {
 
 func (entity *Entity[T]) AppendEntity(v T) {
 	entity.Mu.Lock()
+	defer entity.Mu.Unlock()
 	entity.Entities = append(entity.Entities, &v)
-	entity.Mu.Unlock()
+}
+
+func (entity *Entity[T]) SaveToFile(path string) {
+	entity.Mu.Lock()
+	defer entity.Mu.Unlock()
+	outputPath := "./assets"
+	if _, err := os.Stat(outputPath); errors.Is(err, os.ErrNotExist) {
+		err := os.Mkdir(outputPath, os.ModePerm)
+		if err != nil {
+			log.Fatalf("Ошибка создания каталога: %v\n", err.Error())
+		}
+	}
+	json, err := json.Marshal(entity.Entities)
+	if err != nil {
+		log.Fatalf("Ошибка конвертирования в json: %v\n", err.Error())
+	}
+	if err := os.WriteFile(path, json, os.ModePerm); err != nil {
+		log.Fatalf("Ошибка записи в файл: %v\n", err.Error())
+	}
+}
+
+func (entity *Entity[T]) RestoreFromFile(path string) {
+	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+		return
+	}
+	entity.Mu.Lock()
+	defer entity.Mu.Unlock()
+	file, err := os.Open(path)
+	if err != nil {
+		log.Fatalf("Ошибка открытия файла: %v\n", err.Error())
+	}
+	defer file.Close()
+	data, err := io.ReadAll(file)
+	if err != nil {
+		log.Fatalf("Ошибка чтения из файла: %v\n", err.Error())
+	}
+	jsonError := json.Unmarshal(data, &entity.Entities)
+	entity.EntitiesLen = len(entity.Entities)
+	if jsonError != nil {
+		log.Fatalf("Ошибка десериализации: %v\n", jsonError.Error())
+	}
 }
 
 func (entity *Entity[T]) SavedEntities() []*T {
@@ -31,9 +77,12 @@ func CheckAndSaveEntity(entity any) {
 	switch v := entity.(type) {
 	case model.Order:
 		OrdersStruct.AppendEntity(v)
+		OrdersStruct.SaveToFile("./assets/orders.json")
 	case model.Product:
 		ProductsStruct.AppendEntity(v)
+		ProductsStruct.SaveToFile("./assets/products.json")
 	case model.User:
 		UsersStruct.AppendEntity(v)
+		UsersStruct.SaveToFile("./assets/users.json")
 	}
 }
