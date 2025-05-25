@@ -34,16 +34,26 @@ func (entity *Entity[T]) SaveToFile(path string) {
 		}
 	}
 	entityMaps := entity.ConvertUsersToMaps()
-	switch any(entity.Entities[0]).(type) {
-	case *model.User:
-		json, err := json.Marshal(entityMaps)
-		if err != nil {
-			log.Fatalf("Ошибка конвертирования в json: %v\n", err.Error())
+	if entity.EntitiesLen > 0 {
+		switch any(entity.Entities[0]).(type) {
+		case *model.User:
+			json, err := json.Marshal(entityMaps)
+			if err != nil {
+				log.Fatalf("Ошибка конвертирования в json: %v\n", err.Error())
+			}
+			if err := os.WriteFile(path, json, os.ModePerm); err != nil {
+				log.Fatalf("Ошибка записи в файл: %v\n", err.Error())
+			}
+		default:
+			json, err := json.Marshal(entity.Entities)
+			if err != nil {
+				log.Fatalf("Ошибка конвертирования в json: %v\n", err.Error())
+			}
+			if err := os.WriteFile(path, json, os.ModePerm); err != nil {
+				log.Fatalf("Ошибка записи в файл: %v\n", err.Error())
+			}
 		}
-		if err := os.WriteFile(path, json, os.ModePerm); err != nil {
-			log.Fatalf("Ошибка записи в файл: %v\n", err.Error())
-		}
-	default:
+	} else {
 		json, err := json.Marshal(entity.Entities)
 		if err != nil {
 			log.Fatalf("Ошибка конвертирования в json: %v\n", err.Error())

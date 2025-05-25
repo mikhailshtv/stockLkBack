@@ -41,10 +41,18 @@ func (a *App) Start() error {
 		orders := api.Group("/orders")
 		{
 			orders.POST("", handler.CreateOrder)
+			orders.PUT("/:id", handler.EditOrder)
+			orders.GET("", handler.ListOrders)
+			orders.GET("/:id", handler.GetOrderById)
+			orders.DELETE("/:id", handler.DeleteOrder)
 		}
 		products := api.Group("/products")
 		{
 			products.POST("", handler.CreateProduct)
+			products.PUT("/:id", handler.EditProduct)
+			products.GET("", handler.ListProduct)
+			products.GET("/:id", handler.GetProductById)
+			products.DELETE("/:id", handler.DeleteProduct)
 		}
 		users := api.Group("/users")
 		{
