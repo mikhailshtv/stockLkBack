@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 	"sync"
 )
 
@@ -32,12 +33,24 @@ func (entity *Entity[T]) SaveToFile(path string) {
 			log.Fatalf("Ошибка создания каталога: %v\n", err.Error())
 		}
 	}
-	json, err := json.Marshal(entity.Entities)
-	if err != nil {
-		log.Fatalf("Ошибка конвертирования в json: %v\n", err.Error())
-	}
-	if err := os.WriteFile(path, json, os.ModePerm); err != nil {
-		log.Fatalf("Ошибка записи в файл: %v\n", err.Error())
+	entityMaps := entity.ConvertUsersToMaps()
+	switch any(entity.Entities[0]).(type) {
+	case *model.User:
+		json, err := json.Marshal(entityMaps)
+		if err != nil {
+			log.Fatalf("Ошибка конвертирования в json: %v\n", err.Error())
+		}
+		if err := os.WriteFile(path, json, os.ModePerm); err != nil {
+			log.Fatalf("Ошибка записи в файл: %v\n", err.Error())
+		}
+	default:
+		json, err := json.Marshal(entity.Entities)
+		if err != nil {
+			log.Fatalf("Ошибка конвертирования в json: %v\n", err.Error())
+		}
+		if err := os.WriteFile(path, json, os.ModePerm); err != nil {
+			log.Fatalf("Ошибка записи в файл: %v\n", err.Error())
+		}
 	}
 }
 
@@ -56,10 +69,20 @@ func (entity *Entity[T]) RestoreFromFile(path string) {
 	if err != nil {
 		log.Fatalf("Ошибка чтения из файла: %v\n", err.Error())
 	}
-	jsonError := json.Unmarshal(data, &entity.Entities)
-	entity.EntitiesLen = len(entity.Entities)
-	if jsonError != nil {
-		log.Fatalf("Ошибка десериализации: %v\n", jsonError.Error())
+	if len(data) == 0 {
+		return
+	}
+
+	if strings.Contains(path, "users") {
+		if err := UnmarshalingUserEntitiesJson(data); err != nil {
+			log.Fatalf("Ошибка десериализации: %v\n", err.Error())
+		}
+	} else {
+		jsonError := json.Unmarshal(data, &entity.Entities)
+		entity.EntitiesLen = len(entity.Entities)
+		if jsonError != nil {
+			log.Fatalf("Ошибка десериализации: %v\n", jsonError.Error())
+		}
 	}
 }
 
@@ -85,4 +108,54 @@ func CheckAndSaveEntity(entity any) {
 		UsersStruct.AppendEntity(v)
 		UsersStruct.SaveToFile("./assets/users.json")
 	}
+}
+
+func (entity *Entity[T]) ConvertUsersToMaps() []map[string]any {
+	entityMaps := []map[string]any{}
+	for _, item := range entity.Entities {
+		entityMap := make(map[string]any)
+		switch v := any(item).(type) {
+		case *model.User:
+			entityMap["id"] = v.Id
+			entityMap["login"] = v.Login
+			entityMap["password"] = v.PasswordHash()
+			entityMap["firstName"] = v.FirstName
+			entityMap["lastName"] = v.LastName
+			entityMap["email"] = v.Email
+			entityMap["role"] = v.Role
+
+			entityMaps = append(entityMaps, entityMap)
+		}
+	}
+	return entityMaps
+}
+
+func UnmarshalingUserEntitiesJson(data []byte) error {
+	var temp []struct {
+		Id           int            `json:"id"`
+		Login        string         `json:"login"`
+		PasswordHash string         `json:"password"`
+		FirstName    string         `json:"firstName"`
+		LastName     string         `json:"lastName"`
+		Email        string         `json:"email"`
+		Role         model.UserRole `json:"role"`
+	}
+
+	if err := json.Unmarshal(data, &temp); err != nil {
+		return err
+	}
+
+	for _, v := range temp {
+		currentUser := &model.User{
+			Id:        v.Id,
+			Login:     v.Login,
+			FirstName: v.FirstName,
+			LastName:  v.LastName,
+			Email:     v.Email,
+			Role:      v.Role,
+		}
+		currentUser.SetPasswordHash(v.PasswordHash)
+		UsersStruct.Entities = append(UsersStruct.Entities, currentUser)
+	}
+	return nil
 }

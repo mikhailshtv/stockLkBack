@@ -22,7 +22,7 @@ func RestoreData() {
 	log.Printf("восстановленные данные products: %v\n", string(productsJSON))
 
 	repository.UsersStruct.RestoreFromFile("./assets/users.json")
-	usersJSON, err := json.Marshal(repository.OrdersStruct.Entities)
+	usersJSON, err := json.Marshal(repository.UsersStruct.Entities)
 	if err != nil {
 		log.Fatalf("Ошибка сериализации %v", err.Error())
 	}
