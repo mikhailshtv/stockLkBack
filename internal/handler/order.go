@@ -57,6 +57,7 @@ func EditOrder(ctx *gin.Context) {
 			for _, product := range order.Products {
 				v.TotalCost += product.SalePrice
 			}
+			repository.OrdersStruct.SaveToFile("./assets/orders.json")
 			ctx.JSON(http.StatusOK, v)
 		}
 	}

@@ -30,7 +30,6 @@ func EditProduct(ctx *gin.Context) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Println(id, v.Id)
 		if v.Id == id {
 			var product model.Product
 			if err := ctx.ShouldBindJSON(&product); err != nil {
@@ -42,6 +41,7 @@ func EditProduct(ctx *gin.Context) {
 			v.PurchasePrice = product.PurchasePrice
 			v.SalePrice = product.SalePrice
 			v.Quantity = product.Quantity
+			repository.ProductsStruct.SaveToFile("./assets/products.json")
 			ctx.JSON(http.StatusOK, v)
 		}
 	}

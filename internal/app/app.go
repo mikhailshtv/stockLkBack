@@ -57,6 +57,10 @@ func (a *App) Start() error {
 		users := api.Group("/users")
 		{
 			users.POST("", handler.CreateUser)
+			users.PUT("/:id", handler.EditUser)
+			users.GET("", handler.ListUsers)
+			users.GET("/:id", handler.GetUserById)
+			users.DELETE("/:id", handler.DeleteUser)
 		}
 	}
 
