@@ -47,29 +47,32 @@ func EditUser(ctx *gin.Context) {
 			log.Fatal(err)
 		}
 		if v.Id == id {
-			var user model.User
 			reqBody, err := io.ReadAll(ctx.Request.Body)
 			if err != nil {
 				log.Fatal(err)
 			}
-			reqBodyMap := make(map[string]any)
-			if err := json.Unmarshal(reqBody, &reqBodyMap); err != nil {
+			var userProxy struct {
+				Id        int            `json:"id"`
+				Login     string         `json:"login"`
+				Password  string         `json:"password"`
+				FirstName string         `json:"firstName"`
+				LastName  string         `json:"lastName"`
+				Email     string         `json:"email"`
+				Role      model.UserRole `json:"role,omitempty"`
+			}
+			if err := json.Unmarshal(reqBody, &userProxy); err != nil {
 				log.Fatal(err)
 			}
-			ctx.Request.Body = io.NopCloser(bytes.NewBuffer(reqBody))
-			if err := ctx.ShouldBindJSON(&user); err != nil {
-				ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-				return
-			}
-			v.Login = user.Login
-			v.HashPassword(reqBodyMap["password"].(string))
-			v.FirstName = user.FirstName
-			v.LastName = user.LastName
-			v.Email = user.Email
-			if reqBodyMap["role"] == nil {
+			v.Login = userProxy.Login
+			v.HashPassword(userProxy.Password)
+			v.FirstName = userProxy.FirstName
+			v.LastName = userProxy.LastName
+			v.Email = userProxy.Email
+			v.Role = userProxy.Role
+			if userProxy.Role == 0 {
 				v.Role = 1
 			} else {
-				v.Role = user.Role
+				v.Role = userProxy.Role
 			}
 			repository.UsersStruct.SaveToFile("./assets/users.json")
 			ctx.JSON(http.StatusOK, v)

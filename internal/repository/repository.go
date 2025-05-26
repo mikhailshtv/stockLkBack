@@ -33,15 +33,11 @@ func (entity *Entity[T]) SaveToFile(path string) {
 			log.Fatalf("Ошибка создания каталога: %v\n", err.Error())
 		}
 	}
-	entityMaps := entity.ConvertUsersToMaps()
 	if entity.EntitiesLen > 0 {
 		switch any(entity.Entities[0]).(type) {
 		case *model.User:
-			json, err := json.Marshal(entityMaps)
-			if err != nil {
-				log.Fatalf("Ошибка конвертирования в json: %v\n", err.Error())
-			}
-			if err := os.WriteFile(path, json, os.ModePerm); err != nil {
+			usersJson := MarshalUserEntities(any(entity.Entities).([]*model.User))
+			if err := os.WriteFile(path, usersJson, os.ModePerm); err != nil {
 				log.Fatalf("Ошибка записи в файл: %v\n", err.Error())
 			}
 		default:
@@ -120,24 +116,31 @@ func CheckAndSaveEntity(entity any) {
 	}
 }
 
-func (entity *Entity[T]) ConvertUsersToMaps() []map[string]any {
-	entityMaps := []map[string]any{}
-	for _, item := range entity.Entities {
-		entityMap := make(map[string]any)
-		switch v := any(item).(type) {
-		case *model.User:
-			entityMap["id"] = v.Id
-			entityMap["login"] = v.Login
-			entityMap["password"] = v.PasswordHash()
-			entityMap["firstName"] = v.FirstName
-			entityMap["lastName"] = v.LastName
-			entityMap["email"] = v.Email
-			entityMap["role"] = v.Role
+func MarshalUserEntities(entities []*model.User) []byte {
+	proxyUsers := make([]struct {
+		Id           int            `json:"id"`
+		Login        string         `json:"login"`
+		PasswordHash string         `json:"password"`
+		FirstName    string         `json:"firstName"`
+		LastName     string         `json:"lastName"`
+		Email        string         `json:"email"`
+		Role         model.UserRole `json:"role"`
+	}, len(entities), cap(entities))
 
-			entityMaps = append(entityMaps, entityMap)
-		}
+	for i, item := range entities {
+		proxyUsers[i].Id = item.Id
+		proxyUsers[i].Login = item.Login
+		proxyUsers[i].PasswordHash = item.PasswordHash()
+		proxyUsers[i].FirstName = item.FirstName
+		proxyUsers[i].LastName = item.LastName
+		proxyUsers[i].Email = item.Email
+		proxyUsers[i].Role = item.Role
 	}
-	return entityMaps
+	val, err := json.Marshal(proxyUsers)
+	if err != nil {
+		log.Fatalf("Ошибка конвертирования в json: %v\n", err.Error())
+	}
+	return val
 }
 
 func UnmarshalingUserEntitiesJson(data []byte) error {
