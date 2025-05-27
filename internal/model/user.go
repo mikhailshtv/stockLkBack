@@ -23,6 +23,16 @@ type User struct {
 	Role         UserRole `json:"role"`
 }
 
+type UserProxy struct {
+	Id        int      `json:"id"`
+	Login     string   `json:"login"`
+	Password  string   `json:"password"`
+	FirstName string   `json:"firstName"`
+	LastName  string   `json:"lastName"`
+	Email     string   `json:"email"`
+	Role      UserRole `json:"role,omitempty"`
+}
+
 func (user *User) CheckUserPassword(password string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(user.passwordHash), []byte(password))
 	return err == nil
@@ -41,26 +51,9 @@ func (user *User) SetPasswordHash(passwordHash string) {
 	user.passwordHash = passwordHash
 }
 
-func (user *User) UnmarshalUserJSON(data []byte) error {
-	var temp struct {
-		Id           int      `json:"id"`
-		Login        string   `json:"login"`
-		PasswordHash string   `json:"password"`
-		FirstName    string   `json:"firstName"`
-		LastName     string   `json:"lastName"`
-		Email        string   `json:"email"`
-		Role         UserRole `json:"role"`
+func (userProxy *UserProxy) UnmarshalJSONToUserProxy(data []byte) (*UserProxy, error) {
+	if err := json.Unmarshal(data, &userProxy); err != nil {
+		return nil, err
 	}
-
-	if err := json.Unmarshal(data, &temp); err != nil {
-		return err
-	}
-	user.Id = temp.Id
-	user.Login = temp.Login
-	user.passwordHash = temp.PasswordHash
-	user.FirstName = temp.FirstName
-	user.LastName = temp.LastName
-	user.Email = temp.Email
-	user.Role = temp.Role
-	return nil
+	return userProxy, nil
 }

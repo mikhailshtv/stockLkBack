@@ -138,7 +138,7 @@ func MarshalUserEntities(entities []*model.User) []byte {
 	}
 	val, err := json.Marshal(proxyUsers)
 	if err != nil {
-		log.Fatalf("Ошибка конвертирования в json: %v\n", err.Error())
+		log.Fatalf("Ошибка конвертации в json: %v\n", err.Error())
 	}
 	return val
 }

@@ -2,7 +2,6 @@ package handler
 
 import (
 	"bytes"
-	"encoding/json"
 	"golang/stockLkBack/internal/model"
 	"golang/stockLkBack/internal/repository"
 	"io"
@@ -15,18 +14,25 @@ import (
 )
 
 func CreateUser(ctx *gin.Context) {
-	var user model.User
-	user.Id = repository.UsersStruct.EntitiesLen + 1
 	reqBody, err := io.ReadAll(ctx.Request.Body)
 	if err != nil {
 		log.Fatal(err)
 	}
-	reqBodyMap := make(map[string]any)
-	if err := json.Unmarshal(reqBody, &reqBodyMap); err != nil {
-		log.Fatal(err)
+	var userProxy *model.UserProxy
+	userProxy, err = userProxy.UnmarshalJSONToUserProxy(reqBody)
+	if err != nil {
+		log.Fatalf("Ошибка десериализации: %v\n", err.Error())
 	}
-	user.HashPassword(reqBodyMap["password"].(string))
-	if reqBodyMap["role"] == nil {
+	var user model.User
+	if repository.UsersStruct.EntitiesLen == 0 {
+		user.Id = 1
+	} else {
+		length := repository.UsersStruct.EntitiesLen
+		user.Id = repository.UsersStruct.Entities[length-1].Id + 1
+	}
+
+	user.HashPassword(userProxy.Password)
+	if userProxy.Role == 0 {
 		user.Role = 1
 	}
 	ctx.Request.Body = io.NopCloser(bytes.NewBuffer(reqBody))
@@ -51,28 +57,21 @@ func EditUser(ctx *gin.Context) {
 			if err != nil {
 				log.Fatal(err)
 			}
-			var userProxy struct {
-				Id        int            `json:"id"`
-				Login     string         `json:"login"`
-				Password  string         `json:"password"`
-				FirstName string         `json:"firstName"`
-				LastName  string         `json:"lastName"`
-				Email     string         `json:"email"`
-				Role      model.UserRole `json:"role,omitempty"`
+			var userProxy *model.UserProxy
+			userProxy, err = userProxy.UnmarshalJSONToUserProxy(reqBody)
+			if err != nil {
+				log.Fatalf("Ошибка десериализации: %v\n", err.Error())
 			}
-			if err := json.Unmarshal(reqBody, &userProxy); err != nil {
-				log.Fatal(err)
-			}
-			v.Login = userProxy.Login
 			v.HashPassword(userProxy.Password)
-			v.FirstName = userProxy.FirstName
-			v.LastName = userProxy.LastName
-			v.Email = userProxy.Email
-			v.Role = userProxy.Role
 			if userProxy.Role == 0 {
 				v.Role = 1
 			} else {
 				v.Role = userProxy.Role
+			}
+			ctx.Request.Body = io.NopCloser(bytes.NewBuffer(reqBody))
+			if err := ctx.ShouldBindJSON(&v); err != nil {
+				ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
 			}
 			repository.UsersStruct.SaveToFile("./assets/users.json")
 			ctx.JSON(http.StatusOK, v)
