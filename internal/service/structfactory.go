@@ -35,7 +35,7 @@ func NewOrder() model.Order {
 		CreatedDate: time.Now().Add(time.Hour * time.Duration(faker.NewFaker().RandomIntBetween(-8760, -1))),
 		Status:      model.OrderStatus(faker.NewFaker().RandomIntBetween(1, 2)),
 	}
-	order.SetLastModifiedDate(time.Now().Add(time.Hour * time.Duration(faker.NewFaker().RandomIntBetween(-8760, -1))))
+	// order.SetLastModifiedDate(time.Now().Add(time.Hour * time.Duration(faker.NewFaker().RandomIntBetween(-8760, -1))))
 	return order
 }
 
@@ -47,7 +47,7 @@ func NewProduct() model.Product {
 		Name:      faker.NewFaker().RandomProduct(),
 		SalePrice: faker.NewFaker().RandomIntBetween(1, 999999),
 	}
-	product.SetPurchasePrice(faker.NewFaker().RandomIntBetween(1, 999999))
+	// product.SetPurchasePrice(faker.NewFaker().RandomIntBetween(1, 999999))
 	return product
 }
 
@@ -60,17 +60,15 @@ func NewUser() model.User {
 		Email:     faker.NewFaker().RandomEmail(),
 		Role:      model.UserRole(faker.NewFaker().RandomIntBetween(0, 1)),
 	}
-	err := user.SetPasswordHash(faker.NewFaker().RandomPassword())
+	err := user.HashPassword(faker.NewFaker().RandomPassword())
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 	return user
 }
 
-func LogAddedEntities(ctx context.Context, wg *sync.WaitGroup) {
-	wg.Add(1)
+func LogAddedEntities(ctx context.Context) {
 	go func() {
-		defer wg.Done()
 		for {
 			t := time.NewTicker(time.Millisecond * 200)
 			select {

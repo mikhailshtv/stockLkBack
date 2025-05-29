@@ -2,19 +2,22 @@ package main
 
 import (
 	"context"
+	"golang/stockLkBack/internal/app"
+	"golang/stockLkBack/internal/config"
 	"golang/stockLkBack/internal/service"
-	"os"
-	"os/signal"
-	"sync"
-	"syscall"
+	"log"
 )
 
 func main() {
 	service.RestoreData()
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-	var wg sync.WaitGroup
-	service.Interval(ctx, &wg)
-	service.LogAddedEntities(ctx, &wg)
-	wg.Wait()
+
+	newApp, err := app.NewApp(context.Background(), config.NewConfig())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = newApp.Start()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
