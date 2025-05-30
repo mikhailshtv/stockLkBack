@@ -3,13 +3,14 @@ package model
 import (
 	"encoding/json"
 
+	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type UserRole int
 
 const (
-	Client UserRole = iota
+	Client UserRole = iota + 1
 	Employee
 )
 
@@ -19,18 +20,55 @@ type User struct {
 	passwordHash string   `json:"-"`
 	FirstName    string   `json:"firstName" binding:"required"`
 	LastName     string   `json:"lastName" binding:"required"`
-	Email        string   `json:"email" binding:"required"`
+	Email        string   `json:"email" binding:"required,email"`
 	Role         UserRole `json:"role"`
 }
 
 type UserProxy struct {
-	Id        int      `json:"id"`
-	Login     string   `json:"login"`
-	Password  string   `json:"password"`
-	FirstName string   `json:"firstName"`
-	LastName  string   `json:"lastName"`
-	Email     string   `json:"email"`
-	Role      UserRole `json:"role,omitempty"`
+	Id              int      `json:"id"`
+	Login           string   `json:"login"`
+	Password        string   `json:"password"`
+	PasswordConfirm string   `json:"passwordConfirm"`
+	FirstName       string   `json:"firstName"`
+	LastName        string   `json:"lastName"`
+	Email           string   `json:"email"`
+	Role            UserRole `json:"role,omitempty"`
+}
+
+type UserCreateBody struct {
+	Login           string `json:"login"`
+	Password        string `json:"password"`
+	PasswordConfirm string `json:"passwordConfirm"`
+	FirstName       string `json:"firstName"`
+	LastName        string `json:"lastName"`
+	Email           string `json:"email"`
+}
+
+type UserEditBody struct {
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	Email     string `json:"email"`
+}
+
+type UserRoleBody struct {
+	Role UserRole `json:"role" binding:"required"`
+}
+
+type UserChangePasswordBody struct {
+	Password        string `json:"password" binding:"required"`
+	PasswordConfirm string `json:"passwordConfirm" binding:"required"`
+}
+
+type LoginRequest struct {
+	Login    string `json:"login"`
+	Password string `json:"password"`
+}
+
+// Claims Структура для JWT токена
+type Claims struct {
+	Login              string   `json:"login"`
+	Role               UserRole `json:"role"`
+	jwt.StandardClaims          // Данное поле нужно для правильной генерации JWT
 }
 
 func (user *User) CheckUserPassword(password string) bool {

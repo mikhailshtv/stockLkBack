@@ -22,10 +22,6 @@ type Order struct {
 	Products         []Product   `json:"products" binding:"required"`
 }
 
-// func (order *Order) LastModifiedDate() time.Time {
-// 	return order.lastModifiedDate
-// }
-
-// func (order *Order) SetLastModifiedDate(lastModifiedDate time.Time) {
-// 	order.lastModifiedDate = lastModifiedDate
-// }
+type OrderRequestBody struct {
+	Products []Product `json:"products" binding:"required"`
+}
