@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"golang/stockLkBack/internal/config"
 	"golang/stockLkBack/internal/handler"
+	"golang/stockLkBack/internal/middleware"
 	"golang/stockLkBack/internal/service"
 	"log"
 	"net/http"
@@ -28,39 +29,38 @@ func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	}, nil
 }
 
-func (a *App) Start() error {
+func (a *App) Start(r *gin.Engine) error {
 	ctx, stop := signal.NotifyContext(a.ctx, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
 	defer stop()
 
-	r := gin.New()
-	r.Use(gin.Logger())
-	r.Use(gin.Recovery())
-
 	api := r.Group(a.cfg.Group)
+	api.POST("/login", handler.Login)
 	{
 		orders := api.Group("/orders")
 		{
-			orders.POST("", handler.CreateOrder)
-			orders.PUT("/:id", handler.EditOrder)
-			orders.GET("", handler.ListOrders)
-			orders.GET("/:id", handler.GetOrderById)
-			orders.DELETE("/:id", handler.DeleteOrder)
+			orders.POST("", middleware.TokenAuthMiddleware(), handler.CreateOrder)
+			orders.PUT("/:id", middleware.TokenAuthMiddleware(), handler.EditOrder)
+			orders.GET("", middleware.TokenAuthMiddleware(), handler.ListOrders)
+			orders.GET("/:id", middleware.TokenAuthMiddleware(), handler.GetOrderById)
+			orders.DELETE("/:id", middleware.TokenAuthMiddleware(), handler.DeleteOrder)
 		}
 		products := api.Group("/products")
 		{
-			products.POST("", handler.CreateProduct)
-			products.PUT("/:id", handler.EditProduct)
-			products.GET("", handler.ListProduct)
-			products.GET("/:id", handler.GetProductById)
-			products.DELETE("/:id", handler.DeleteProduct)
+			products.POST("", middleware.TokenAuthMiddleware(), handler.CreateProduct)
+			products.PUT("/:id", middleware.TokenAuthMiddleware(), handler.EditProduct)
+			products.GET("", middleware.TokenAuthMiddleware(), handler.ListProduct)
+			products.GET("/:id", middleware.TokenAuthMiddleware(), handler.GetProductById)
+			products.DELETE("/:id", middleware.TokenAuthMiddleware(), handler.DeleteProduct)
 		}
 		users := api.Group("/users")
 		{
-			users.POST("", handler.CreateUser)
-			users.PUT("/:id", handler.EditUser)
-			users.GET("", handler.ListUsers)
-			users.GET("/:id", handler.GetUserById)
-			users.DELETE("/:id", handler.DeleteUser)
+			users.POST("", handler.CreateUser) // фактически регистрация пользователя
+			users.PUT("/:id", middleware.TokenAuthMiddleware(), handler.EditUser)
+			users.GET("", middleware.TokenAuthMiddleware(), handler.ListUsers)
+			users.GET("/:id", middleware.TokenAuthMiddleware(), handler.GetUserById)
+			users.DELETE("/:id", middleware.TokenAuthMiddleware(), handler.DeleteUser)
+			users.PATCH("/:id/role", middleware.TokenAuthMiddleware(), handler.ChangeUserRole)
+			users.PATCH("/:id/password", middleware.TokenAuthMiddleware(), handler.ChangeUserPassword)
 		}
 	}
 

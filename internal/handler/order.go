@@ -12,6 +12,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// CreateOrder
+// @Summary Создание заказа
+// @Tags Orders
+// @Accept			json
+// @Produce		json
+// @Param order body model.OrderRequestBody true "Объект заказа"
+// @Success 200 {object} model.Order
+// @Failure 400 {object} model.Error "Invalid request"
+// @Router /api/v1/orders [post]
+// @Security BearerAuth
 func CreateOrder(ctx *gin.Context) {
 	var order model.Order
 	if err := ctx.ShouldBindJSON(&order); err != nil {
@@ -38,6 +48,17 @@ func CreateOrder(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, order)
 }
 
+// EditOrder
+// @Summary Редактирование заказа
+// @Tags Orders
+// @Accept			json
+// @Produce		json
+// @Param order body model.OrderRequestBody true "Объект заказа"
+// @Success 200 {object} model.Order
+// @Failure 400 {object} model.Error "Invalid request"
+// @Param id path string true "id заказа"
+// @Router /api/v1/orders{id} [put]
+// @Security BearerAuth
 func EditOrder(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
 	for _, v := range repository.OrdersStruct.Entities {
@@ -63,10 +84,27 @@ func EditOrder(ctx *gin.Context) {
 	}
 }
 
+// OrderList
+// @Summary Список заказов
+// @Tags Orders
+// @Produce		json
+// @Success 200 {object} []model.Order
+// @Failure 400 {string} string "Invalid request"
+// @Router /api/v1/orders [get]
+// @Security BearerAuth
 func ListOrders(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, repository.OrdersStruct.Entities)
 }
 
+// GetOrderById
+// @Summary Получение заказа по id
+// @Tags Orders
+// @Produce		json
+// @Success 200 {object} model.Order
+// @Failure 400 {string} string "Invalid request"
+// @Param id path string true "id заказа"
+// @Router /api/v1/orders/{id} [get]
+// @Security BearerAuth
 func GetOrderById(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
 	for _, v := range repository.OrdersStruct.Entities {
@@ -80,6 +118,15 @@ func GetOrderById(ctx *gin.Context) {
 	}
 }
 
+// DeleteOrder
+// @Summary Удаление заказа
+// @Tags Orders
+// @Produce		json
+// @Success 200 {object} model.Success "Объект успешно удален"
+// @Failure 400 {string} string "Invalid request"
+// @Param id path string true "id заказа"
+// @Router /api/v1/orders/{id} [delete]
+// @Security BearerAuth
 func DeleteOrder(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
 	for i, v := range repository.OrdersStruct.Entities {
@@ -91,7 +138,11 @@ func DeleteOrder(ctx *gin.Context) {
 			repository.OrdersStruct.Entities = slices.Delete(repository.OrdersStruct.Entities, i, i+1)
 			repository.OrdersStruct.EntitiesLen = len(repository.OrdersStruct.Entities)
 			repository.OrdersStruct.SaveToFile("./assets/orders.json")
-			ctx.JSON(http.StatusOK, gin.H{"status": "Success", "message": "Объект успешно удален"})
+			success := model.Success{
+				Status:  "Success",
+				Message: "Объект успешно удален",
+			}
+			ctx.JSON(http.StatusOK, success)
 		}
 	}
 }

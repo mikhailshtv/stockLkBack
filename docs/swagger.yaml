@@ -1,0 +1,639 @@
+definitions:
+  model.Error:
+    properties:
+      error:
+        type: string
+    type: object
+  model.LoginRequest:
+    properties:
+      login:
+        type: string
+      password:
+        type: string
+    type: object
+  model.Order:
+    properties:
+      createdDate:
+        type: string
+      id:
+        type: integer
+      lastModifiedDate:
+        type: string
+      number:
+        type: integer
+      products:
+        items:
+          $ref: '#/definitions/model.Product'
+        type: array
+      status:
+        $ref: '#/definitions/model.OrderStatus'
+      totalCost:
+        type: integer
+    required:
+    - products
+    type: object
+  model.OrderRequestBody:
+    properties:
+      products:
+        items:
+          $ref: '#/definitions/model.Product'
+        type: array
+    required:
+    - products
+    type: object
+  model.OrderStatus:
+    enum:
+    - 1
+    - 2
+    - 3
+    type: integer
+    x-enum-varnames:
+    - Active
+    - Executed
+    - Deleted
+  model.Product:
+    properties:
+      code:
+        type: integer
+      id:
+        type: integer
+      name:
+        type: string
+      purchasePrice:
+        type: integer
+      quantity:
+        type: integer
+      salePrice:
+        type: integer
+    type: object
+  model.ProductRequestBody:
+    properties:
+      code:
+        type: integer
+      name:
+        type: string
+      purchasePrice:
+        type: integer
+      quantity:
+        type: integer
+      salePrice:
+        type: integer
+    type: object
+  model.Success:
+    properties:
+      message:
+        type: string
+      status:
+        type: string
+    type: object
+  model.TokenSuccess:
+    properties:
+      message:
+        type: string
+      token:
+        type: string
+    type: object
+  model.User:
+    properties:
+      email:
+        type: string
+      firstName:
+        type: string
+      id:
+        type: integer
+      lastName:
+        type: string
+      login:
+        type: string
+      role:
+        $ref: '#/definitions/model.UserRole'
+    required:
+    - email
+    - firstName
+    - lastName
+    - login
+    type: object
+  model.UserChangePasswordBody:
+    properties:
+      password:
+        type: string
+      passwordConfirm:
+        type: string
+    required:
+    - password
+    - passwordConfirm
+    type: object
+  model.UserCreateBody:
+    properties:
+      email:
+        type: string
+      firstName:
+        type: string
+      lastName:
+        type: string
+      login:
+        type: string
+      password:
+        type: string
+      passwordConfirm:
+        type: string
+    type: object
+  model.UserEditBody:
+    properties:
+      email:
+        type: string
+      firstName:
+        type: string
+      lastName:
+        type: string
+    type: object
+  model.UserRole:
+    enum:
+    - 1
+    - 2
+    type: integer
+    x-enum-varnames:
+    - Client
+    - Employee
+  model.UserRoleBody:
+    properties:
+      role:
+        $ref: '#/definitions/model.UserRole'
+    required:
+    - role
+    type: object
+host: localhost:8080/
+info:
+  contact: {}
+  description: API для сервиса управления товарами на скаладе продавца
+  title: Сервис управления складом
+  version: "1"
+paths:
+  /api/v1/login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Данные для аутентификации пользователя
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/model.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.TokenSuccess'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/model.Error'
+      summary: Аутенификация пользователя
+      tags:
+      - Login
+  /api/v1/orders:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Order'
+            type: array
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Список заказов
+      tags:
+      - Orders
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Объект заказа
+        in: body
+        name: order
+        required: true
+        schema:
+          $ref: '#/definitions/model.OrderRequestBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Order'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/model.Error'
+      security:
+      - BearerAuth: []
+      summary: Создание заказа
+      tags:
+      - Orders
+  /api/v1/orders/{id}:
+    delete:
+      parameters:
+      - description: id заказа
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Объект успешно удален
+          schema:
+            $ref: '#/definitions/model.Success'
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Удаление заказа
+      tags:
+      - Orders
+    get:
+      parameters:
+      - description: id заказа
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Order'
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Получение заказа по id
+      tags:
+      - Orders
+  /api/v1/orders{id}:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Объект заказа
+        in: body
+        name: order
+        required: true
+        schema:
+          $ref: '#/definitions/model.OrderRequestBody'
+      - description: id заказа
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Order'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/model.Error'
+      security:
+      - BearerAuth: []
+      summary: Редактирование заказа
+      tags:
+      - Orders
+  /api/v1/products:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Product'
+            type: array
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Список продуктов
+      tags:
+      - Products
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Объект продукта
+        in: body
+        name: product
+        required: true
+        schema:
+          $ref: '#/definitions/model.ProductRequestBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Product'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/model.Error'
+      security:
+      - BearerAuth: []
+      summary: Создание продукта
+      tags:
+      - Products
+  /api/v1/products/{id}:
+    delete:
+      parameters:
+      - description: id продукта
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Объект успешно удален
+          schema:
+            $ref: '#/definitions/model.Success'
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Удаление продукта
+      tags:
+      - Products
+    get:
+      parameters:
+      - description: id продукта
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Product'
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Получение продукта по id
+      tags:
+      - Products
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Объект продукта
+        in: body
+        name: product
+        required: true
+        schema:
+          $ref: '#/definitions/model.ProductRequestBody'
+      - description: id продукта
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Product'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/model.Error'
+      security:
+      - BearerAuth: []
+      summary: Редактирование продукта
+      tags:
+      - Products
+  /api/v1/users:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.User'
+            type: array
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Список пользователей
+      tags:
+      - Users
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Объект пользователя
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/model.UserCreateBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.User'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/model.Error'
+      security:
+      - BearerAuth: []
+      summary: Создание/регистрация пользователя
+      tags:
+      - Users
+  /api/v1/users/{id}:
+    delete:
+      parameters:
+      - description: id пользователя
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Объект успешно удален
+          schema:
+            $ref: '#/definitions/model.Success'
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Удаление пользователя
+      tags:
+      - Users
+    get:
+      parameters:
+      - description: id пользователя
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.User'
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Получение пользователя по id
+      tags:
+      - Users
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Объект пользователя
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/model.UserEditBody'
+      - description: id пользователя
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.User'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/model.Error'
+      security:
+      - BearerAuth: []
+      summary: Редактирование пользователя
+      tags:
+      - Users
+  /api/v1/users/{id}/password:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Объект с паролем пользователя
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/model.UserChangePasswordBody'
+      - description: id пользователя
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Success'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/model.Error'
+      security:
+      - BearerAuth: []
+      summary: Изменение пароля пользователя
+      tags:
+      - Users
+  /api/v1/users/{id}/role:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Объект с ролью пользователя
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/model.UserRoleBody'
+      - description: id пользователя
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.User'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/model.Error'
+      security:
+      - BearerAuth: []
+      summary: Изменение роли пользователя
+      tags:
+      - Users
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
