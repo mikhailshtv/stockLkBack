@@ -4,6 +4,7 @@ import (
 	"context"
 	"golang/stockLkBack/internal/app"
 	"golang/stockLkBack/internal/config"
+	"golang/stockLkBack/internal/grpc"
 	"golang/stockLkBack/internal/service"
 	"log"
 
@@ -26,9 +27,11 @@ import (
 
 func main() {
 	service.RestoreData()
+	ctx := context.Background()
+	go grpc.StartServer()
 	r := gin.Default()
 
-	newApp, err := app.NewApp(context.Background(), config.NewConfig())
+	newApp, err := app.NewApp(ctx, config.NewConfig())
 	if err != nil {
 		log.Fatal(err)
 	}
