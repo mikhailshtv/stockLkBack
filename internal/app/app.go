@@ -6,7 +6,6 @@ import (
 	"golang/stockLkBack/internal/config"
 	"golang/stockLkBack/internal/handler"
 	"golang/stockLkBack/internal/middleware"
-	"golang/stockLkBack/internal/service"
 	"log"
 	"net/http"
 	"os"
@@ -18,14 +17,16 @@ import (
 )
 
 type App struct {
-	cfg *config.Config
-	ctx context.Context
+	cfg     *config.Config
+	ctx     context.Context
+	handler *handler.Handler
 }
 
-func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
+func NewApp(ctx context.Context, cfg *config.Config, handler *handler.Handler) (*App, error) {
 	return &App{
-		ctx: ctx,
-		cfg: cfg,
+		ctx:     ctx,
+		cfg:     cfg,
+		handler: handler,
 	}, nil
 }
 
@@ -34,33 +35,33 @@ func (a *App) Start(r *gin.Engine) error {
 	defer stop()
 
 	api := r.Group(a.cfg.Group)
-	api.POST("/login", handler.Login)
+	api.POST("/login", a.handler.Login)
 	{
 		orders := api.Group("/orders")
 		{
-			orders.POST("", middleware.TokenAuthMiddleware(), handler.CreateOrder)
-			orders.PUT("/:id", middleware.TokenAuthMiddleware(), handler.EditOrder)
-			orders.GET("", middleware.TokenAuthMiddleware(), handler.ListOrders)
-			orders.GET("/:id", middleware.TokenAuthMiddleware(), handler.GetOrderById)
-			orders.DELETE("/:id", middleware.TokenAuthMiddleware(), handler.DeleteOrder)
+			orders.POST("", middleware.TokenAuthMiddleware(), a.handler.CreateOrder)
+			orders.PUT("/:id", middleware.TokenAuthMiddleware(), a.handler.EditOrder)
+			orders.GET("", middleware.TokenAuthMiddleware(), a.handler.ListOrders)
+			orders.GET("/:id", middleware.TokenAuthMiddleware(), a.handler.GetOrderById)
+			orders.DELETE("/:id", middleware.TokenAuthMiddleware(), a.handler.DeleteOrder)
 		}
 		products := api.Group("/products")
 		{
-			products.POST("", middleware.TokenAuthMiddleware(), handler.CreateProduct)
-			products.PUT("/:id", middleware.TokenAuthMiddleware(), handler.EditProduct)
-			products.GET("", middleware.TokenAuthMiddleware(), handler.ListProduct)
-			products.GET("/:id", middleware.TokenAuthMiddleware(), handler.GetProductById)
-			products.DELETE("/:id", middleware.TokenAuthMiddleware(), handler.DeleteProduct)
+			products.POST("", middleware.TokenAuthMiddleware(), a.handler.CreateProduct)
+			products.PUT("/:id", middleware.TokenAuthMiddleware(), a.handler.EditProduct)
+			products.GET("", middleware.TokenAuthMiddleware(), a.handler.ListProduct)
+			products.GET("/:id", middleware.TokenAuthMiddleware(), a.handler.GetProductById)
+			products.DELETE("/:id", middleware.TokenAuthMiddleware(), a.handler.DeleteProduct)
 		}
 		users := api.Group("/users")
 		{
-			users.POST("", handler.CreateUser) // фактически регистрация пользователя
-			users.PUT("/:id", middleware.TokenAuthMiddleware(), handler.EditUser)
-			users.GET("", middleware.TokenAuthMiddleware(), handler.ListUsers)
-			users.GET("/:id", middleware.TokenAuthMiddleware(), handler.GetUserById)
-			users.DELETE("/:id", middleware.TokenAuthMiddleware(), handler.DeleteUser)
-			users.PATCH("/:id/role", middleware.TokenAuthMiddleware(), handler.ChangeUserRole)
-			users.PATCH("/:id/password", middleware.TokenAuthMiddleware(), handler.ChangeUserPassword)
+			users.POST("", a.handler.CreateUser) // фактически регистрация пользователя
+			users.PUT("/:id", middleware.TokenAuthMiddleware(), a.handler.EditUser)
+			users.GET("", middleware.TokenAuthMiddleware(), a.handler.ListUsers)
+			users.GET("/:id", middleware.TokenAuthMiddleware(), a.handler.GetUserById)
+			users.DELETE("/:id", middleware.TokenAuthMiddleware(), a.handler.DeleteUser)
+			users.PATCH("/:id/role", middleware.TokenAuthMiddleware(), a.handler.ChangeUserRole)
+			users.PATCH("/:id/password", middleware.TokenAuthMiddleware(), a.handler.ChangeUserPassword)
 		}
 	}
 
@@ -75,7 +76,6 @@ func (a *App) Start(r *gin.Engine) error {
 			log.Fatalf("listen: %s\n", err)
 		}
 	}()
-	service.LogAddedEntities(ctx)
 
 	<-ctx.Done()
 	log.Println("got interruption signal")

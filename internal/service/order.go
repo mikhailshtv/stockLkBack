@@ -3,24 +3,32 @@ package service
 import (
 	"golang/stockLkBack/internal/model"
 	"golang/stockLkBack/internal/repository"
-	"time"
 )
 
-func SetCommonOrderDataOnCreate(order *model.Order) {
-	order.Id = repository.OrdersStruct.EntitiesLen + 1
+type OrdersService struct {
+	repo repository.Order
+}
 
-	if repository.OrdersStruct.EntitiesLen > 0 {
-		lastOrder := repository.OrdersStruct.Entities[repository.OrdersStruct.EntitiesLen-1]
-		order.Number = lastOrder.Number + 1
-	} else {
-		order.Number = 1
-	}
-	order.CreatedDate = time.Now().UTC()
-	order.LastModifiedDate = time.Now().UTC()
-	order.Status = model.Active
-	totalCost := 0
-	for _, product := range order.Products {
-		totalCost += product.SalePrice
-	}
-	order.TotalCost = totalCost
+func NewOrdersService(repo repository.Order) *OrdersService {
+	return &OrdersService{repo: repo}
+}
+
+func (s *OrdersService) Create(order model.OrderRequestBody) (*model.Order, error) {
+	return s.repo.Create(order)
+}
+
+func (s *OrdersService) GetAll() ([]model.Order, error) {
+	return s.repo.GetAll()
+}
+
+func (s *OrdersService) GetById(id int) (*model.Order, error) {
+	return s.repo.GetById(id)
+}
+
+func (s *OrdersService) Delete(id int) error {
+	return s.repo.Delete(id)
+}
+
+func (s *OrdersService) Update(id int, order model.OrderRequestBody) (*model.Order, error) {
+	return s.repo.Update(id, order)
 }

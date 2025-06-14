@@ -4,6 +4,7 @@ go 1.24.0
 
 require (
 	github.com/ddosify/go-faker v0.1.1
+	github.com/golang/mock v1.6.0
 	github.com/mikhailshtv/proto_api v0.1.5
 	github.com/swaggo/swag v1.16.4
 	golang.org/x/crypto v0.39.0
@@ -54,4 +55,5 @@ require (
 	github.com/jaswdr/faker v1.19.1 // indirect
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.0
+	go.uber.org/mock v0.5.2
 )

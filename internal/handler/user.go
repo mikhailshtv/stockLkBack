@@ -1,14 +1,9 @@
 package handler
 
 import (
-	"bytes"
 	"golang/stockLkBack/internal/model"
-	"golang/stockLkBack/internal/repository"
-	"golang/stockLkBack/internal/utils/jwtgen"
-	"io"
 	"log"
 	"net/http"
-	"slices"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -24,41 +19,17 @@ import (
 // @Failure 400 {object} model.Error "Invalid request"
 // @Router /api/v1/users [post]
 // @Security BearerAuth
-func CreateUser(ctx *gin.Context) {
-	reqBody, err := io.ReadAll(ctx.Request.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-	var userProxy *model.UserProxy
-	userProxy, err = userProxy.UnmarshalJSONToUserProxy(reqBody)
-	if err != nil {
-		log.Fatalf("Ошибка десериализации: %v\n", err.Error())
-	}
-	var user model.User
-	if repository.UsersStruct.EntitiesLen == 0 {
-		user.Id = 1
-	} else {
-		length := repository.UsersStruct.EntitiesLen
-		user.Id = repository.UsersStruct.Entities[length-1].Id + 1
-	}
-
-	if userProxy.Password == userProxy.PasswordConfirm {
-		user.HashPassword(userProxy.Password)
-	} else {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Ошибка подтверждения пароля"})
-		return
-	}
-
-	if userProxy.Role == 0 {
-		user.Role = 1
-	}
-	ctx.Request.Body = io.NopCloser(bytes.NewBuffer(reqBody))
-	if err := ctx.ShouldBindJSON(&user); err != nil {
+func (h *Handler) CreateUser(ctx *gin.Context) {
+	var userReq model.UserCreateBody
+	if err := ctx.ShouldBindJSON(&userReq); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	repository.CheckAndSaveEntity(user)
+	user, err := h.Services.User.Create(userReq)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 	ctx.JSON(http.StatusOK, user)
 }
 
@@ -70,37 +41,28 @@ func CreateUser(ctx *gin.Context) {
 // @Param user body model.LoginRequest true "Данные для аутентификации пользователя"
 // @Success 200 {object} model.TokenSuccess
 // @Failure 400 {object} model.Error "Invalid request"
+// @Failure 401 {object} model.Error "Anauthorized"
+// @Failure 500 {object} model.Error "Internal server error"
 // @Router /api/v1/login [post]
-func Login(ctx *gin.Context) {
+func (h *Handler) Login(ctx *gin.Context) {
 	var loginRequest model.LoginRequest
 	if err := ctx.ShouldBindJSON(&loginRequest); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		ctx.Abort()
 		return
 	}
-
-	var index int
-	for i, v := range repository.UsersStruct.Entities {
-		if v.Login == loginRequest.Login && v.CheckUserPassword(loginRequest.Password) {
-			index = i
-			// Генерация токена
-			token, err := jwtgen.GenerateToken(loginRequest.Login, v.Role)
-			if err != nil {
-				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка генерации токена"})
-				return
-			}
-
-			ctx.JSON(http.StatusOK, gin.H{
-				"message": "Login successful",
-				"token":   token,
-			})
+	TokenSuccess, err := h.Services.User.Login(loginRequest)
+	if err != nil {
+		if err.Error() == "ошибка генерации токена" {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		} else if err.Error() == "логин или пароль пользователя недействителен" {
+			ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			ctx.Abort()
+			return
 		}
 	}
-	if index == 0 {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Логин или пароль пользователя недействителен"})
-		return
-	}
-
+	ctx.JSON(http.StatusOK, TokenSuccess)
 }
 
 // EditUser
@@ -114,44 +76,29 @@ func Login(ctx *gin.Context) {
 // @Param id path string true "id пользователя"
 // @Router /api/v1/users/{id} [put]
 // @Security BearerAuth
-func EditUser(ctx *gin.Context) {
+func (h *Handler) EditUser(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
-	var index int
-	for i, v := range repository.UsersStruct.Entities {
-		id, err := strconv.Atoi(idStr)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if v.Id == id {
-			index = i
-			var userEdit *model.UserEditBody
-			if err := ctx.ShouldBindJSON(&userEdit); err != nil {
-				ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-				return
-			}
-			if userEdit.Email == "" && userEdit.FirstName == "" && userEdit.LastName == "" {
-				ctx.JSON(http.StatusBadRequest, gin.H{"error": "Недопустимое тело запроса"})
-				ctx.Abort()
-				return
-			}
-			if userEdit.Email != "" {
-				v.Email = userEdit.Email
-			}
-			if userEdit.FirstName != "" {
-				v.FirstName = userEdit.FirstName
-			}
-			if userEdit.LastName != "" {
-				v.LastName = userEdit.LastName
-			}
-			repository.UsersStruct.SaveToFile("./assets/users.json")
-			ctx.JSON(http.StatusOK, v)
-		}
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		log.Fatal(err)
 	}
-	if index == 0 {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Объект не найден"})
+	var userEdit model.UserEditBody
+	if err := ctx.ShouldBindJSON(&userEdit); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if userEdit.Email == "" && userEdit.FirstName == "" && userEdit.LastName == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Недопустимое тело запроса"})
 		ctx.Abort()
 		return
 	}
+	user, err := h.Services.User.Update(id, userEdit)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		ctx.Abort()
+		return
+	}
+	ctx.JSON(http.StatusOK, user)
 }
 
 // ChangeUserRole
@@ -165,29 +112,29 @@ func EditUser(ctx *gin.Context) {
 // @Param id path string true "id пользователя"
 // @Router /api/v1/users/{id}/role [patch]
 // @Security BearerAuth
-func ChangeUserRole(ctx *gin.Context) {
+func (h *Handler) ChangeUserRole(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
-	for _, v := range repository.UsersStruct.Entities {
-		id, err := strconv.Atoi(idStr)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if v.Id == id {
-			var userRole *model.UserRoleBody
-			if err := ctx.ShouldBindJSON(&userRole); err != nil {
-				ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-				return
-			}
-			if userRole.Role == 0 || userRole.Role > 2 {
-				ctx.JSON(http.StatusBadRequest, gin.H{"error": "Недопустимое тело запроса"})
-				return
-			} else {
-				v.Role = userRole.Role
-			}
-			repository.UsersStruct.SaveToFile("./assets/users.json")
-			ctx.JSON(http.StatusOK, v)
-		}
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		log.Fatal(err)
 	}
+	var userRole *model.UserRoleBody
+	if err := ctx.ShouldBindJSON(&userRole); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if userRole.Role == 0 || userRole.Role > 2 {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Недопустимое тело запроса"})
+		return
+	}
+
+	user, err := h.Services.User.ChangeUserRole(id, *userRole)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, user)
 }
 
 // ChangeUserPassword
@@ -201,33 +148,28 @@ func ChangeUserRole(ctx *gin.Context) {
 // @Param id path string true "id пользователя"
 // @Router /api/v1/users/{id}/password [patch]
 // @Security BearerAuth
-func ChangeUserPassword(ctx *gin.Context) {
+func (h *Handler) ChangeUserPassword(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
-	for _, v := range repository.UsersStruct.Entities {
-		id, err := strconv.Atoi(idStr)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if v.Id == id {
-			var userPassword *model.UserChangePasswordBody
-			if err := ctx.ShouldBindJSON(&userPassword); err != nil {
-				ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-				return
-			}
-			if userPassword.Password != userPassword.PasswordConfirm {
-				ctx.JSON(http.StatusBadRequest, gin.H{"error": "Ошибка подтверждения пароля"})
-				return
-			} else {
-				v.HashPassword(userPassword.Password)
-			}
-			repository.UsersStruct.SaveToFile("./assets/users.json")
-			success := model.Success{
-				Status:  "Success",
-				Message: "Пароль успешно изменен",
-			}
-			ctx.JSON(http.StatusOK, success)
-		}
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		log.Fatal(err)
 	}
+	var userPassword model.UserChangePasswordBody
+	if err := ctx.ShouldBindJSON(&userPassword); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if userPassword.Password != userPassword.PasswordConfirm {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Ошибка подтверждения пароля"})
+		return
+	}
+
+	success, err := h.Services.User.ChangePassword(id, userPassword)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, success)
 }
 
 // UserList
@@ -238,8 +180,14 @@ func ChangeUserPassword(ctx *gin.Context) {
 // @Failure 400 {string} string "Invalid request"
 // @Router /api/v1/users [get]
 // @Security BearerAuth
-func ListUsers(ctx *gin.Context) {
-	ctx.JSON(http.StatusOK, repository.UsersStruct.Entities)
+func (h *Handler) ListUsers(ctx *gin.Context) {
+	users, err := h.Services.User.GetAll()
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		ctx.Abort()
+		return
+	}
+	ctx.JSON(http.StatusOK, users)
 }
 
 // GetUserById
@@ -251,17 +199,19 @@ func ListUsers(ctx *gin.Context) {
 // @Param id path string true "id пользователя"
 // @Router /api/v1/users/{id} [get]
 // @Security BearerAuth
-func GetUserById(ctx *gin.Context) {
+func (h *Handler) GetUserById(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
-	for _, v := range repository.UsersStruct.Entities {
-		id, err := strconv.Atoi(idStr)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if v.Id == id {
-			ctx.JSON(http.StatusOK, v)
-		}
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		log.Fatal(err)
 	}
+	user, err := h.Services.User.GetById(id)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		ctx.Abort()
+		return
+	}
+	ctx.JSON(http.StatusOK, user)
 }
 
 // DeleteUser
@@ -273,22 +223,20 @@ func GetUserById(ctx *gin.Context) {
 // @Param id path string true "id пользователя"
 // @Router /api/v1/users/{id} [delete]
 // @Security BearerAuth
-func DeleteUser(ctx *gin.Context) {
+func (h *Handler) DeleteUser(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
-	for i, v := range repository.UsersStruct.Entities {
-		id, err := strconv.Atoi(idStr)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if v.Id == id {
-			repository.UsersStruct.Entities = slices.Delete(repository.UsersStruct.Entities, i, i+1)
-			repository.UsersStruct.EntitiesLen = len(repository.UsersStruct.Entities)
-			repository.UsersStruct.SaveToFile("./assets/users.json")
-			success := model.Success{
-				Status:  "Success",
-				Message: "Объект успешно удален",
-			}
-			ctx.JSON(http.StatusOK, success)
-		}
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		log.Fatal(err)
 	}
+	if err := h.Services.User.Delete(id); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		ctx.Abort()
+		return
+	}
+	success := model.Success{
+		Status:  "Success",
+		Message: "Объект успешно удален",
+	}
+	ctx.JSON(http.StatusOK, success)
 }
