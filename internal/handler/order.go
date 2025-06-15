@@ -17,16 +17,21 @@ import (
 // @Param order body model.OrderRequestBody true "Объект заказа"
 // @Success 200 {object} model.Order
 // @Failure 400 {object} model.Error "Invalid request"
+// @Failure 500 {object} model.Error "Internal"
 // @Router /api/v1/orders [post]
 // @Security BearerAuth
 func (h *Handler) CreateOrder(ctx *gin.Context) {
-	var order model.OrderRequestBody
-	if err := ctx.ShouldBindJSON(&order); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	var orderReq model.OrderRequestBody
+	if err := ctx.ShouldBindJSON(&orderReq); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Некорректное тело запроса"})
 		return
 	}
 
-	h.Services.Order.Create(order)
+	order, err := h.Services.Order.Create(orderReq)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 	ctx.JSON(http.StatusOK, order)
 }
 

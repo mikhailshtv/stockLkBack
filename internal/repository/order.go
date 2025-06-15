@@ -43,7 +43,7 @@ func (or *OrdersRepository) Create(orderRequest model.OrderRequestBody) (*model.
 	or.OrdersLen = len(or.Orders)
 
 	if err := saveOrdersToFile(or.Orders); err != nil {
-		return nil, err
+		return nil, errors.New("ошибка сохранения в файл")
 	}
 	return &order, nil
 }
@@ -64,7 +64,7 @@ func (or *OrdersRepository) Delete(id int) error {
 	or.Orders = slices.DeleteFunc(or.Orders, func(order model.Order) bool { return order.Id == id })
 	or.OrdersLen = len(or.Orders)
 	if err := saveOrdersToFile(or.Orders); err != nil {
-		return err
+		return errors.New("ошибка сохранения в файл")
 	}
 	return nil
 }

@@ -35,7 +35,7 @@ func (ur *UsersRepository) Create(userRequest model.UserCreateBody) (*model.User
 	if userRequest.Password == userRequest.PasswordConfirm {
 		user.HashPassword(userRequest.Password)
 	} else {
-		return nil, errors.New("Ошибка подтверждения пароля")
+		return nil, errors.New("ошибка подтверждения пароля")
 	}
 
 	ur.Users = append(ur.Users, user)
@@ -54,7 +54,7 @@ func (ur *UsersRepository) GetAll() ([]model.User, error) {
 func (ur *UsersRepository) GetById(id int) (*model.User, error) {
 	idx := slices.IndexFunc(ur.Users, func(user model.User) bool { return user.Id == id })
 	if idx == -1 {
-		return nil, errors.New("Элемент не найден")
+		return nil, errors.New("элемент не найден")
 	}
 	return &ur.Users[idx], nil
 }
@@ -71,7 +71,7 @@ func (ur *UsersRepository) Delete(id int) error {
 func (ur *UsersRepository) Update(id int, userReq model.UserEditBody) (*model.User, error) {
 	idx := slices.IndexFunc(ur.Users, func(user model.User) bool { return user.Id == id })
 	if idx == -1 {
-		return nil, errors.New("Элемент не найден")
+		return nil, errors.New("элемент не найден")
 	}
 	if userReq.FirstName != "" {
 		ur.Users[idx].FirstName = userReq.FirstName

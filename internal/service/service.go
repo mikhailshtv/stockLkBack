@@ -5,6 +5,8 @@ import (
 	"golang/stockLkBack/internal/repository"
 )
 
+//go:generate mockgen -source=service.go -destination=mocks/mock.go
+
 type Order interface {
 	Create(order model.OrderRequestBody) (*model.Order, error)
 	GetAll() ([]model.Order, error)
