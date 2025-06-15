@@ -1,10 +1,11 @@
-package repository
+package service
 
 import (
 	"golang/stockLkBack/internal/model"
+	"golang/stockLkBack/internal/repository"
 )
 
-//go:generate mockgen -source=repository.go -destination=mocks/repository.go -package=mocks
+//go:generate mockgen -source=service.go -destination=mocks/mock.go
 
 type Order interface {
 	Create(order model.OrderRequestBody) (*model.Order, error)
@@ -12,7 +13,6 @@ type Order interface {
 	GetById(id int) (*model.Order, error)
 	Delete(id int) error
 	Update(id int, order model.OrderRequestBody) (*model.Order, error)
-	RestoreOrdersFromFile(path string)
 }
 
 type Product interface {
@@ -21,7 +21,6 @@ type Product interface {
 	GetById(id int) (*model.Product, error)
 	Delete(id int) error
 	Update(id int, product model.ProductRequestBody) (*model.Product, error)
-	RestoreProductsFromFile(path string)
 }
 
 type User interface {
@@ -33,19 +32,18 @@ type User interface {
 	Login(user model.LoginRequest) (*model.TokenSuccess, error)
 	ChangeUserRole(id int, userRoleReq model.UserRoleBody) (*model.User, error)
 	ChangePassword(id int, changePassworReq model.UserChangePasswordBody) (*model.Success, error)
-	RestoreUsersFromFile(path string)
 }
 
-type Repository struct {
+type Service struct {
 	Order
 	Product
 	User
 }
 
-func NewRepository() *Repository {
-	return &Repository{
-		Order:   NewOrdersRepository(),
-		Product: NewProductsRepository(),
-		User:    NewUsersRepository(),
+func NewService(repo *repository.Repository) *Service {
+	return &Service{
+		Order:   NewOrdersService(repo.Order),
+		Product: NewProductsService(repo.Product),
+		User:    NewUsersService(repo.User),
 	}
 }

@@ -4,12 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"golang/stockLkBack/internal/handler"
 	"golang/stockLkBack/internal/model"
-	"golang/stockLkBack/internal/repository"
-	"golang/stockLkBack/internal/service"
 	"log"
 	"net"
-	"slices"
 	"time"
 
 	"github.com/mikhailshtv/proto_api/pkg/grpc/v1/orders_api"
@@ -25,13 +23,19 @@ import (
 
 type server struct {
 	orders_api.UnimplementedOrderServiceServer
+	handler *handler.Handler
 }
 
 func (s *server) GetOrders(
 	_ context.Context,
 	_ *emptypb.Empty,
 ) (*orders_api.GetOrdersResponse, error) {
-	ordersJson, err := json.Marshal(repository.OrdersStruct.Entities)
+	ordersAll, err := s.handler.Services.Order.GetAll()
+	if err != nil {
+		log.Fatal(err.Error())
+		status.Errorf(codes.Internal, "Ошибка получения списка заказов")
+	}
+	ordersJson, err := json.Marshal(ordersAll)
 	if err != nil {
 		log.Fatal(err.Error())
 		status.Errorf(codes.Internal, "Ошибка при конвертации в JSON")
@@ -52,22 +56,28 @@ func (s *server) GetOrder(
 		return nil, status.Errorf(codes.InvalidArgument, "id должен быть больше чем 0")
 	}
 
-	for _, v := range repository.OrdersStruct.Entities {
-		if v.Id == int(orderId) {
-			orderJson, err := json.Marshal(v)
-			if err != nil {
-				log.Fatal(err.Error())
-				status.Errorf(codes.Internal, "Ошибка при конвертации в JSON")
-			}
-			var order *orders_api.Order
-			json.Unmarshal(orderJson, &order)
-			return &orders_api.GetOrderResponse{
-				Order: order,
-			}, nil
+	receivedOrder, err := s.handler.Services.Order.GetById(int(orderId))
+	if err != nil {
+		log.Fatal(err.Error())
+		if err.Error() == "элемент не найден" {
+			status.Errorf(codes.NotFound, "Объект не найден")
+			return nil, errors.New("объект не найден")
+		} else {
+			status.Errorf(codes.Internal, err.Error())
+			return nil, err
 		}
+
 	}
-	status.Errorf(codes.NotFound, "Объект не найден")
-	return nil, errors.New("объект не найден")
+	orderJson, err := json.Marshal(receivedOrder)
+	if err != nil {
+		log.Fatal(err.Error())
+		status.Errorf(codes.Internal, "Ошибка при конвертации в JSON")
+	}
+	var order *orders_api.Order
+	json.Unmarshal(orderJson, &order)
+	return &orders_api.GetOrderResponse{
+		Order: order,
+	}, nil
 }
 
 func (s *server) CreateOrder(
@@ -80,11 +90,14 @@ func (s *server) CreateOrder(
 		log.Fatal(err.Error())
 		status.Errorf(codes.Internal, "Ошибка при конвертации в JSON")
 	}
-	var order model.Order
+	var orderReq model.OrderRequestBody
 
-	json.Unmarshal(productsJson, &order.Products)
-	service.SetCommonOrderDataOnCreate(&order)
-	repository.CheckAndSaveEntity(order)
+	json.Unmarshal(productsJson, &orderReq.Products)
+	order, err := s.handler.Services.Order.Create(orderReq)
+	if err != nil {
+		log.Fatal(err.Error())
+		status.Errorf(codes.Internal, "Ошибка при создании заказа")
+	}
 	return &orders_api.Order{
 		Id:               int32(order.Id),
 		Number:           int32(order.Number),
@@ -106,34 +119,38 @@ func (s *server) EditOrder(
 	}
 	products := req.Products
 
-	for _, v := range repository.OrdersStruct.Entities {
-		if v.Id == int(orderId) {
-			productsJson, err := json.Marshal(products)
-			if err != nil {
-				log.Fatal(err.Error())
-				status.Errorf(codes.Internal, "Ошибка при конвертации в JSON")
-			}
-			json.Unmarshal(productsJson, &v.Products)
-			v.LastModifiedDate = time.Now().UTC()
-			v.TotalCost = 0
-			for _, product := range v.Products {
-				v.TotalCost += product.SalePrice
-			}
-			repository.OrdersStruct.SaveToFile("./assets/orders.json")
+	var orderReq model.OrderRequestBody
+	orderReqJson, err := json.Marshal(req)
+	if err != nil {
+		log.Fatal(err.Error())
+		status.Errorf(codes.Internal, "Ошибка при конвертации в JSON")
+	}
+	if err := json.Unmarshal(orderReqJson, &orderReq); err != nil {
+		log.Fatal(err.Error())
+		status.Errorf(codes.Internal, "Ошибка десериализации")
+	}
 
-			return &orders_api.Order{
-				Id:               int32(v.Id),
-				Number:           int32(v.Number),
-				TotalCost:        int32(v.TotalCost),
-				CreatedDate:      timestamppb.New(v.CreatedDate),
-				LastModifiedDate: timestamppb.New(v.LastModifiedDate),
-				Status:           int32(v.Status),
-				Products:         products,
-			}, nil
+	order, err := s.handler.Services.Order.Update(int(orderId), orderReq)
+	if err != nil {
+		log.Fatal(err.Error())
+		if err.Error() == "элемент не найден" {
+			status.Errorf(codes.NotFound, "Объект не найден")
+			return nil, errors.New("объект не найден")
+		} else {
+			status.Errorf(codes.Internal, err.Error())
+			return nil, err
 		}
 	}
-	status.Errorf(codes.NotFound, "Объект не найден")
-	return nil, errors.New("объект не найден")
+
+	return &orders_api.Order{
+		Id:               int32(order.Id),
+		Number:           int32(order.Number),
+		TotalCost:        int32(order.TotalCost),
+		CreatedDate:      timestamppb.New(order.CreatedDate),
+		LastModifiedDate: timestamppb.New(order.LastModifiedDate),
+		Status:           int32(order.Status),
+		Products:         products,
+	}, nil
 }
 
 func (s *server) DeleteOrder(
@@ -145,23 +162,24 @@ func (s *server) DeleteOrder(
 		return nil, status.Errorf(codes.InvalidArgument, "id должен быть больше чем 0")
 	}
 
-	for i, v := range repository.OrdersStruct.Entities {
-		if v.Id == int(orderId) {
-			repository.OrdersStruct.Entities = slices.Delete(repository.OrdersStruct.Entities, i, i+1)
-			repository.OrdersStruct.EntitiesLen = len(repository.OrdersStruct.Entities)
-			repository.OrdersStruct.SaveToFile("./assets/orders.json")
-
-			return &orders_api.Success{
-				Status:  "Success",
-				Message: "Объект успешно удален",
-			}, nil
+	err := s.handler.Services.Order.Delete(int(orderId))
+	if err != nil {
+		if err.Error() == "элемент не найден" {
+			status.Errorf(codes.NotFound, "Объект не найден")
+			return nil, errors.New("объект не найден")
+		} else {
+			status.Errorf(codes.Internal, err.Error())
+			return nil, err
 		}
 	}
-	status.Errorf(codes.NotFound, "Объект не найден")
-	return nil, errors.New("объект не найден")
+
+	return &orders_api.Success{
+		Status:  "Success",
+		Message: "Объект успешно удален",
+	}, nil
 }
 
-func StartServer() {
+func StartServer(handler *handler.Handler) {
 	lis, err := net.Listen("tcp", "localhost:5001")
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
@@ -173,7 +191,7 @@ func StartServer() {
 		),
 	)
 
-	orders_api.RegisterOrderServiceServer(s, &server{})
+	orders_api.RegisterOrderServiceServer(s, &server{handler: handler})
 	reflection.Register(s)
 
 	log.Println("Server is running at :5001")
