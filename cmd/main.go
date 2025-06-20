@@ -5,6 +5,8 @@ import (
 	"golang/stockLkBack/internal/app"
 	"golang/stockLkBack/internal/config"
 	"golang/stockLkBack/internal/grpc"
+	"golang/stockLkBack/internal/handler"
+	"golang/stockLkBack/internal/repository"
 	"golang/stockLkBack/internal/service"
 	"log"
 
@@ -26,12 +28,19 @@ import (
 // @name Authorization
 
 func main() {
-	service.RestoreData()
 	ctx := context.Background()
-	go grpc.StartServer()
 	r := gin.Default()
 
-	newApp, err := app.NewApp(ctx, config.NewConfig())
+	repo := repository.NewRepository()
+	repo.Order.RestoreOrdersFromFile("./assets/orders.json")
+	repo.Product.RestoreProductsFromFile("./assets/products.json")
+	repo.User.RestoreUsersFromFile("./assets/users.json")
+	services := service.NewService(repo)
+	handlers := handler.NewHandler(services)
+
+	go grpc.StartServer(handlers)
+
+	newApp, err := app.NewApp(ctx, config.NewConfig(), handlers)
 	if err != nil {
 		log.Fatal(err)
 	}
