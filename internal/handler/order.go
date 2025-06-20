@@ -70,13 +70,13 @@ func (h *Handler) EditOrder(ctx *gin.Context) {
 // @Tags Orders
 // @Produce		json
 // @Success 200 {object} []model.Order
-// @Failure 400 {string} string "Invalid request"
+// @Failure 500 {string} string "Internal"
 // @Router /api/v1/orders [get]
 // @Security BearerAuth
 func (h *Handler) ListOrders(ctx *gin.Context) {
 	orders, err := h.Services.Order.GetAll()
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	ctx.JSON(http.StatusOK, orders)
@@ -110,7 +110,7 @@ func (h *Handler) GetOrderById(ctx *gin.Context) {
 // @Tags Orders
 // @Produce		json
 // @Success 200 {object} model.Success "Объект успешно удален"
-// @Failure 400 {string} string "Invalid request"
+// @Failure 500 {string} string "Internal"
 // @Param id path string true "id заказа"
 // @Router /api/v1/orders/{id} [delete]
 // @Security BearerAuth
@@ -122,7 +122,7 @@ func (h *Handler) DeleteOrder(ctx *gin.Context) {
 	}
 	err = h.Services.Order.Delete(id)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	success := model.Success{
