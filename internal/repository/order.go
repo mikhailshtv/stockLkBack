@@ -1,35 +1,50 @@
 package repository
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"golang/stockLkBack/internal/model"
-	"io"
 	"log"
-	"os"
-	"slices"
 	"time"
+
+	"github.com/go-redis/redis/v8"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type OrdersRepository struct {
-	Orders    []model.Order
-	OrdersLen int
+	db             *mongo.Database
+	redis          *redis.Client
+	collectionName string
 }
 
-func NewOrdersRepository() *OrdersRepository {
-	return &OrdersRepository{Orders: []model.Order{}}
+func NewOrdersRepository(db *mongo.Database, redis *redis.Client, collectionName string) *OrdersRepository {
+	return &OrdersRepository{db: db, redis: redis, collectionName: collectionName}
 }
 
 func (or *OrdersRepository) Create(orderRequest model.OrderRequestBody) (*model.Order, error) {
 	var order model.Order
-	if or.OrdersLen > 0 {
-		lastOrder := or.Orders[or.OrdersLen-1]
-		order.Id = lastOrder.Id + 1
-		order.Number = lastOrder.Number + 1
-	} else {
+	ordersCollection := or.db.Collection(or.collectionName)
+	_, err := ordersCollection.Find(context.TODO(), bson.D{})
+	if err != nil {
+		fmt.Println("Коллекция пуста")
 		order.Id = 1
 		order.Number = 1
+	} else {
+		orderNextId, err := getNextSequence(or.db, "orderid")
+		if err != nil {
+			return nil, err
+		}
+		orderNextNumber, err := getNextSequence(or.db, "orderNumber")
+		if err != nil {
+			return nil, err
+		}
+		order.Id = orderNextId
+		order.Number = orderNextNumber
 	}
+
 	order.CreatedDate = time.Now().UTC()
 	order.LastModifiedDate = time.Now().UTC()
 	order.Status = model.Active
@@ -39,95 +54,102 @@ func (or *OrdersRepository) Create(orderRequest model.OrderRequestBody) (*model.
 	}
 	order.TotalCost = totalCost
 	order.Products = orderRequest.Products
-	or.Orders = append(or.Orders, order)
-	or.OrdersLen = len(or.Orders)
-
-	if err := saveOrdersToFile(or.Orders); err != nil {
-		return nil, errors.New("ошибка сохранения в файл")
+	_, err = ordersCollection.InsertOne(context.TODO(), order)
+	if err != nil {
+		log.Fatal(err)
 	}
+
 	return &order, nil
 }
 
 func (or *OrdersRepository) GetAll() ([]model.Order, error) {
-	return or.Orders, nil
+	cursor, err := or.db.Collection(or.collectionName).Find(context.TODO(), bson.D{})
+	if err != nil {
+		return nil, err
+	}
+	var orders []model.Order
+	if err = cursor.All(context.TODO(), &orders); err != nil {
+		return nil, err
+	}
+	return orders, nil
 }
 
 func (or *OrdersRepository) GetById(id int) (*model.Order, error) {
-	idx := slices.IndexFunc(or.Orders, func(order model.Order) bool { return order.Id == id })
-	if idx == -1 {
+	ordersCollection := or.db.Collection(or.collectionName)
+	var result bson.M
+	filter := bson.M{"_id": id}
+	err := ordersCollection.FindOne(context.TODO(), filter).Decode(&result)
+	if err != nil {
 		return nil, errors.New("элемент не найден")
 	}
-	return &or.Orders[idx], nil
+	var order model.Order
+	resultBytes, err := bson.Marshal(result)
+	if err != nil {
+		return nil, err
+	}
+	bson.Unmarshal(resultBytes, &order)
+
+	return &order, nil
 }
 
-func (or *OrdersRepository) Delete(id int) error {
-	or.Orders = slices.DeleteFunc(or.Orders, func(order model.Order) bool { return order.Id == id })
-	or.OrdersLen = len(or.Orders)
-	if err := saveOrdersToFile(or.Orders); err != nil {
-		return errors.New("ошибка сохранения в файл")
+func (or *OrdersRepository) Delete(id int) (*model.Order, error) {
+	ordersCollection := or.db.Collection(or.collectionName)
+	filter := bson.M{"_id": id}
+	deletingOrder, err := or.GetById(id)
+	if err != nil {
+		return nil, err
 	}
-	return nil
+	_, err = ordersCollection.DeleteOne(context.TODO(), filter)
+	if err != nil {
+		return nil, err
+	}
+	return deletingOrder, nil
 }
 
 func (or *OrdersRepository) Update(id int, order model.OrderRequestBody) (*model.Order, error) {
-	idx := slices.IndexFunc(or.Orders, func(order model.Order) bool { return order.Id == id })
-	if idx == -1 {
-		return nil, errors.New("элемент не найден")
-	}
-	or.Orders[idx].Products = order.Products
-	or.Orders[idx].LastModifiedDate = time.Now().UTC()
-	or.Orders[idx].TotalCost = 0
+	totalCost := 0
 	for _, product := range order.Products {
-		or.Orders[idx].TotalCost += product.SalePrice
+		totalCost += product.SalePrice
 	}
-	if err := saveOrdersToFile(or.Orders); err != nil {
+	ordersCollection := or.db.Collection(or.collectionName)
+	filter := bson.M{"_id": id}
+	update := bson.M{
+		"$set": bson.M{"products": order.Products, "lastModifiedDate": time.Now().UTC(), "totalCost": totalCost},
+	}
+	_, err := ordersCollection.UpdateOne(context.TODO(), filter, update)
+	if err != nil {
 		return nil, err
 	}
-	return &or.Orders[idx], nil
+	return or.GetById(id)
 }
 
-func (or *OrdersRepository) RestoreOrdersFromFile(path string) {
-	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
-		return
-	}
-	file, err := os.Open(path)
+func (or *OrdersRepository) WriteLog(result any, operation, status string) (int64, error) {
+
+	id, err := or.redis.Incr(context.TODO(), "logOrder:id").Result()
 	if err != nil {
-		log.Fatalf("Ошибка открытия файла: %v\n", err.Error())
-	}
-	defer file.Close()
-	data, err := io.ReadAll(file)
-	if err != nil {
-		log.Fatalf("Ошибка чтения из файла: %v\n", err.Error())
-	}
-	if len(data) == 0 {
-		return
+		return 0, fmt.Errorf("error incrementing ID: %w", err)
 	}
 
-	jsonError := json.Unmarshal(data, &or.Orders)
-	or.OrdersLen = len(or.Orders)
-	if jsonError != nil {
-		log.Fatalf("Ошибка десериализации: %v\n", jsonError.Error())
-	}
-}
-
-func saveOrdersToFile(orders []model.Order) error {
-	outputPath := "./assets"
-	if _, err := os.Stat(outputPath); errors.Is(err, os.ErrNotExist) {
-		err := os.Mkdir(outputPath, os.ModePerm)
-		if err != nil {
-			log.Fatalf("Ошибка создания каталога: %v\n", err.Error())
-			return err
-		}
-	}
-	path := "./assets/orders.json"
-	json, err := json.Marshal(orders)
+	resultJSON, err := json.Marshal(result)
 	if err != nil {
-		log.Fatalf("Ошибка конвертирования в json: %v\n", err.Error())
-		return err
+		return 0, fmt.Errorf("error marshaling result: %w", err)
 	}
-	if err := os.WriteFile(path, json, os.ModePerm); err != nil {
-		log.Fatalf("Ошибка записи в файл: %v\n", err.Error())
-		return err
+
+	key := fmt.Sprintf("logOrder:%d", id)
+	_, err = or.redis.HSet(context.TODO(), key,
+		"id", id,
+		"operation", operation,
+		"status", status,
+		"result", resultJSON,
+		"date", time.Now().UTC(),
+	).Result()
+	if err != nil {
+		return 0, fmt.Errorf("error saving log: %w", err)
 	}
-	return nil
+	_, err = or.redis.Expire(context.TODO(), key, time.Hour*24).Result()
+	if err != nil {
+		return 0, fmt.Errorf("error setting TTL: %w", err)
+	}
+
+	return id, nil
 }

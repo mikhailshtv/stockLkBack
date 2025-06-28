@@ -9,15 +9,18 @@ import (
 	"log"
 	"os"
 	"slices"
+
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type UsersRepository struct {
 	Users    []model.User
 	UsersLen int
+	db       *mongo.Database
 }
 
-func NewUsersRepository() *UsersRepository {
-	return &UsersRepository{Users: []model.User{}}
+func NewUsersRepository(db *mongo.Database) *UsersRepository {
+	return &UsersRepository{db: db}
 }
 
 func (ur *UsersRepository) Create(userRequest model.UserCreateBody) (*model.User, error) {

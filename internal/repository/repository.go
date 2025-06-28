@@ -2,6 +2,9 @@ package repository
 
 import (
 	"golang/stockLkBack/internal/model"
+
+	"github.com/go-redis/redis/v8"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 //go:generate mockgen -source=repository.go -destination=mocks/repository.go -package=mocks
@@ -10,9 +13,9 @@ type Order interface {
 	Create(order model.OrderRequestBody) (*model.Order, error)
 	GetAll() ([]model.Order, error)
 	GetById(id int) (*model.Order, error)
-	Delete(id int) error
+	Delete(id int) (*model.Order, error)
 	Update(id int, order model.OrderRequestBody) (*model.Order, error)
-	RestoreOrdersFromFile(path string)
+	WriteLog(result any, operation, status string) (int64, error)
 }
 
 type Product interface {
@@ -42,10 +45,10 @@ type Repository struct {
 	User
 }
 
-func NewRepository() *Repository {
+func NewRepository(db *mongo.Database, redis *redis.Client) *Repository {
 	return &Repository{
-		Order:   NewOrdersRepository(),
-		Product: NewProductsRepository(),
-		User:    NewUsersRepository(),
+		Order:   NewOrdersRepository(db, redis, "ordersCollection"),
+		Product: NewProductsRepository(db),
+		User:    NewUsersRepository(db),
 	}
 }
