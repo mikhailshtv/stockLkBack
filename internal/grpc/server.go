@@ -32,16 +32,25 @@ func (s *server) GetOrders(
 ) (*orders_api.GetOrdersResponse, error) {
 	ordersAll, err := s.handler.Services.Order.GetAll()
 	if err != nil {
-		log.Fatal(err.Error())
-		status.Errorf(codes.Internal, "Ошибка получения списка заказов")
+		log.Println(err.Error())
+		err = status.Errorf(codes.Internal, "Ошибка получения списка заказов")
+		if err != nil {
+			log.Println(err.Error())
+		}
 	}
 	ordersJson, err := json.Marshal(ordersAll)
 	if err != nil {
-		log.Fatal(err.Error())
-		status.Errorf(codes.Internal, "Ошибка при конвертации в JSON")
+		log.Println(err.Error())
+		err = status.Errorf(codes.Internal, "Ошибка при конвертации в JSON")
+		if err != nil {
+			log.Println(err.Error())
+		}
 	}
 	var orders []*orders_api.Order
-	json.Unmarshal(ordersJson, &orders)
+	err = json.Unmarshal(ordersJson, &orders)
+	if err != nil {
+		log.Println(err.Error())
+	}
 	return &orders_api.GetOrdersResponse{
 		Orders: orders,
 	}, nil
@@ -53,28 +62,44 @@ func (s *server) GetOrder(
 ) (*orders_api.GetOrderResponse, error) {
 	orderId := req.GetId()
 	if orderId <= 0 {
-		return nil, status.Errorf(codes.InvalidArgument, "id должен быть больше чем 0")
+		err := status.Errorf(codes.InvalidArgument, "id должен быть больше чем 0")
+		if err != nil {
+			log.Println(err.Error())
+		}
+		return nil, err
 	}
 
 	receivedOrder, err := s.handler.Services.Order.GetById(int(orderId))
 	if err != nil {
 		log.Fatal(err.Error())
 		if err.Error() == "элемент не найден" {
-			status.Errorf(codes.NotFound, "Объект не найден")
-			return nil, errors.New("объект не найден")
+			err = status.Errorf(codes.NotFound, "Объект не найден")
+			if err != nil {
+				log.Println(err.Error())
+			}
+			return nil, err
 		} else {
-			status.Errorf(codes.Internal, err.Error())
+			err = status.Errorf(codes.Internal, err.Error())
+			if err != nil {
+				log.Println(err.Error())
+			}
 			return nil, err
 		}
 
 	}
 	orderJson, err := json.Marshal(receivedOrder)
 	if err != nil {
-		log.Fatal(err.Error())
-		status.Errorf(codes.Internal, "Ошибка при конвертации в JSON")
+		log.Println(err.Error())
+		err = status.Errorf(codes.Internal, "Ошибка при конвертации в JSON")
+		if err != nil {
+			log.Println(err.Error())
+		}
 	}
 	var order *orders_api.Order
-	json.Unmarshal(orderJson, &order)
+	err = json.Unmarshal(orderJson, &order)
+	if err != nil {
+		log.Println(err.Error())
+	}
 	return &orders_api.GetOrderResponse{
 		Order: order,
 	}, nil
@@ -87,16 +112,25 @@ func (s *server) CreateOrder(
 	products := req.Products
 	productsJson, err := json.Marshal(products)
 	if err != nil {
-		log.Fatal(err.Error())
-		status.Errorf(codes.Internal, "Ошибка при конвертации в JSON")
+		log.Println(err.Error())
+		err = status.Errorf(codes.Internal, "Ошибка при конвертации в JSON")
+		if err != nil {
+			log.Println(err.Error())
+		}
 	}
 	var orderReq model.OrderRequestBody
 
-	json.Unmarshal(productsJson, &orderReq.Products)
+	err = json.Unmarshal(productsJson, &orderReq.Products)
+	if err != nil {
+		log.Println(err.Error())
+	}
 	order, err := s.handler.Services.Order.Create(orderReq)
 	if err != nil {
-		log.Fatal(err.Error())
-		status.Errorf(codes.Internal, "Ошибка при создании заказа")
+		log.Println(err.Error())
+		err = status.Errorf(codes.Internal, "Ошибка при создании заказа")
+		if err != nil {
+			log.Println(err.Error())
+		}
 	}
 	return &orders_api.Order{
 		Id:               int32(order.Id),
@@ -115,29 +149,45 @@ func (s *server) EditOrder(
 ) (*orders_api.Order, error) {
 	orderId := req.GetId()
 	if orderId <= 0 {
-		return nil, status.Errorf(codes.InvalidArgument, "id должен быть больше чем 0")
+		err := status.Errorf(codes.InvalidArgument, "id должен быть больше чем 0")
+		if err != nil {
+			log.Println(err.Error())
+		}
+		return nil, err
 	}
 	products := req.Products
 
 	var orderReq model.OrderRequestBody
 	orderReqJson, err := json.Marshal(req)
 	if err != nil {
-		log.Fatal(err.Error())
-		status.Errorf(codes.Internal, "Ошибка при конвертации в JSON")
+		log.Println(err.Error())
+		err = status.Errorf(codes.Internal, "Ошибка при конвертации в JSON")
+		if err != nil {
+			log.Println(err.Error())
+		}
 	}
 	if err := json.Unmarshal(orderReqJson, &orderReq); err != nil {
-		log.Fatal(err.Error())
-		status.Errorf(codes.Internal, "Ошибка десериализации")
+		log.Println(err.Error())
+		err = status.Errorf(codes.Internal, "Ошибка десериализации")
+		if err != nil {
+			log.Println(err.Error())
+		}
 	}
 
 	order, err := s.handler.Services.Order.Update(int(orderId), orderReq)
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Println(err.Error())
 		if err.Error() == "элемент не найден" {
-			status.Errorf(codes.NotFound, "Объект не найден")
+			err = status.Errorf(codes.NotFound, "Объект не найден")
+			if err != nil {
+				log.Println(err.Error())
+			}
 			return nil, errors.New("объект не найден")
 		} else {
-			status.Errorf(codes.Internal, err.Error())
+			err = status.Errorf(codes.Internal, err.Error())
+			if err != nil {
+				log.Println(err.Error())
+			}
 			return nil, err
 		}
 	}
@@ -159,16 +209,26 @@ func (s *server) DeleteOrder(
 ) (*orders_api.Success, error) {
 	orderId := req.GetId()
 	if orderId <= 0 {
-		return nil, status.Errorf(codes.InvalidArgument, "id должен быть больше чем 0")
+		err := status.Errorf(codes.InvalidArgument, "id должен быть больше чем 0")
+		if err != nil {
+			log.Println(err.Error())
+		}
+		return nil, err
 	}
 
 	err := s.handler.Services.Order.Delete(int(orderId))
 	if err != nil {
 		if err.Error() == "элемент не найден" {
-			status.Errorf(codes.NotFound, "Объект не найден")
+			err = status.Errorf(codes.NotFound, "Объект не найден")
+			if err != nil {
+				log.Println(err.Error())
+			}
 			return nil, errors.New("объект не найден")
 		} else {
-			status.Errorf(codes.Internal, err.Error())
+			err = status.Errorf(codes.Internal, err.Error())
+			if err != nil {
+				log.Println(err.Error())
+			}
 			return nil, err
 		}
 	}

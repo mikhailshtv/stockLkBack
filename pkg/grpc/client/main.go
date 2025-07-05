@@ -98,11 +98,11 @@ func editOrder(client orders_api.OrderServiceClient) {
 	products = append(products, &product2)
 	order, err := client.EditOrder(context.Background(), &orders_api.OrderEditRequest{Id: 1, Products: products})
 	if err != nil {
-		log.Fatalf("error edit order request: %s", err.Error())
+		log.Printf("error edit order request: %s", err.Error())
 	}
 	orderJson, err := json.Marshal(order)
 	if err != nil {
-		log.Fatal("Ошибка конвертации в JSON")
+		log.Printf("Ошибка конвертации в JSON")
 	}
 	fmt.Println(string(orderJson))
 }
@@ -110,7 +110,7 @@ func editOrder(client orders_api.OrderServiceClient) {
 func deleteOrder(client orders_api.OrderServiceClient) {
 	result, err := client.DeleteOrder(context.Background(), &orders_api.OrderActionByIdRequest{Id: 1})
 	if err != nil {
-		log.Fatalf("error delete order request: %s", err.Error())
+		log.Printf("error delete order request: %s", err.Error())
 	}
 	fmt.Printf("status: %s, message: %s", result.Status, result.Message)
 }

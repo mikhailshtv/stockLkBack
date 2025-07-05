@@ -87,7 +87,10 @@ func (or *OrdersRepository) GetById(id int) (*model.Order, error) {
 	if err != nil {
 		return nil, err
 	}
-	bson.Unmarshal(resultBytes, &order)
+	err = bson.Unmarshal(resultBytes, &order)
+	if err != nil {
+		return nil, err
+	}
 
 	return &order, nil
 }

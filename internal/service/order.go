@@ -3,6 +3,7 @@ package service
 import (
 	"golang/stockLkBack/internal/model"
 	"golang/stockLkBack/internal/repository"
+	"log"
 )
 
 type OrdersService struct {
@@ -25,7 +26,10 @@ func (s *OrdersService) Create(order model.OrderRequestBody) (*model.Order, erro
 		status = "Success"
 	}
 
-	s.repo.WriteLog(result, "Create", status)
+	_, logErr := s.repo.WriteLog(result, "Create", status)
+	if logErr != nil {
+		log.Println(logErr.Error())
+	}
 	return createdOrder, err
 }
 
@@ -44,13 +48,15 @@ func (s *OrdersService) Delete(id int) error {
 	if err != nil {
 		result = err
 		status = "Error"
-		return nil
-	} else {
-		result = delitedOrder
-		status = "Success"
 	}
 
-	s.repo.WriteLog(result, "Delete", status)
+	result = delitedOrder
+	status = "Success"
+
+	_, logErr := s.repo.WriteLog(result, "Delete", status)
+	if logErr != nil {
+		log.Println(logErr.Error())
+	}
 	return err
 }
 
@@ -61,11 +67,13 @@ func (s *OrdersService) Update(id int, order model.OrderRequestBody) (*model.Ord
 	if err != nil {
 		result = err
 		status = "Error"
-	} else {
-		result = updatedOrder
-		status = "Success"
 	}
+	result = updatedOrder
+	status = "Success"
 
-	s.repo.WriteLog(result, "Update", status)
+	_, logErr := s.repo.WriteLog(result, "Update", status)
+	if logErr != nil {
+		log.Println(logErr.Error())
+	}
 	return updatedOrder, err
 }
