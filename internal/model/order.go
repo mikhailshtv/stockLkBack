@@ -13,15 +13,15 @@ const (
 )
 
 type Order struct {
-	Id               int         `json:"id"`
-	Number           int         `json:"number"`
-	TotalCost        int         `json:"totalCost"`
-	CreatedDate      time.Time   `json:"createdDate"`
-	LastModifiedDate time.Time   `json:"lastModifiedDate"`
-	Status           OrderStatus `json:"status"`
-	Products         []Product   `json:"products" binding:"required"`
+	Id               int         `json:"id" bson:"_id,omitempty"`
+	Number           int         `json:"number" bson:"number"`
+	TotalCost        int         `json:"totalCost" bson:"totalCost"`
+	CreatedDate      time.Time   `json:"createdDate" bson:"createdDate"`
+	LastModifiedDate time.Time   `json:"lastModifiedDate" bson:"lastModifiedDate"`
+	Status           OrderStatus `json:"status" bson:"status"`
+	Products         []Product   `json:"products" binding:"required" bson:"products"`
 }
 
 type OrderRequestBody struct {
-	Products []Product `json:"products" binding:"required"`
+	Products []Product `json:"products" binding:"required" bson:"products"`
 }

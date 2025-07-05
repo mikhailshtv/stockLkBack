@@ -14,7 +14,19 @@ func NewOrdersService(repo repository.Order) *OrdersService {
 }
 
 func (s *OrdersService) Create(order model.OrderRequestBody) (*model.Order, error) {
-	return s.repo.Create(order)
+	createdOrder, err := s.repo.Create(order)
+	var result any
+	var status string
+	if err != nil {
+		result = err
+		status = "Error"
+	} else {
+		result = createdOrder
+		status = "Success"
+	}
+
+	s.repo.WriteLog(result, "Create", status)
+	return createdOrder, err
 }
 
 func (s *OrdersService) GetAll() ([]model.Order, error) {
@@ -26,9 +38,34 @@ func (s *OrdersService) GetById(id int) (*model.Order, error) {
 }
 
 func (s *OrdersService) Delete(id int) error {
-	return s.repo.Delete(id)
+	delitedOrder, err := s.repo.Delete(id)
+	var result any
+	var status string
+	if err != nil {
+		result = err
+		status = "Error"
+		return nil
+	} else {
+		result = delitedOrder
+		status = "Success"
+	}
+
+	s.repo.WriteLog(result, "Delete", status)
+	return err
 }
 
 func (s *OrdersService) Update(id int, order model.OrderRequestBody) (*model.Order, error) {
-	return s.repo.Update(id, order)
+	updatedOrder, err := s.repo.Update(id, order)
+	var result any
+	var status string
+	if err != nil {
+		result = err
+		status = "Error"
+	} else {
+		result = updatedOrder
+		status = "Success"
+	}
+
+	s.repo.WriteLog(result, "Update", status)
+	return updatedOrder, err
 }

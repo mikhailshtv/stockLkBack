@@ -8,15 +8,18 @@ import (
 	"log"
 	"os"
 	"slices"
+
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type ProductsRepository struct {
 	Products   []model.Product
 	ProductLen int
+	db         *mongo.Database
 }
 
-func NewProductsRepository() *ProductsRepository {
-	return &ProductsRepository{Products: []model.Product{}}
+func NewProductsRepository(db *mongo.Database) *ProductsRepository {
+	return &ProductsRepository{db: db}
 }
 
 func (pr *ProductsRepository) Create(productRequest model.ProductRequestBody) (*model.Product, error) {
