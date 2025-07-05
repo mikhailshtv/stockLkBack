@@ -36,7 +36,10 @@ func (ur *UsersRepository) Create(userRequest model.UserCreateBody) (*model.User
 	user.Login = userRequest.Login
 	user.Email = userRequest.Email
 	if userRequest.Password == userRequest.PasswordConfirm {
-		user.HashPassword(userRequest.Password)
+		err := user.HashPassword(userRequest.Password)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		return nil, errors.New("ошибка подтверждения пароля")
 	}
@@ -128,7 +131,10 @@ func (ur *UsersRepository) ChangePassword(id int, changePassworReq model.UserCha
 		return nil, errors.New("пользователь не найден")
 	}
 	foundUser := ur.Users[idx]
-	foundUser.HashPassword(changePassworReq.Password)
+	err := foundUser.HashPassword(changePassworReq.Password)
+	if err != nil {
+		return nil, err
+	}
 	return &model.Success{
 		Status:  "Success",
 		Message: "Пароль успешно изменен",
