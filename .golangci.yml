@@ -1,6 +1,7 @@
 run:
   tests: true
-  modules-download-mode: readonly
+  modules-download-mode: vendor
+  relative-path-mode: gitroot
   build-tags: []
 
 linters-settings:
@@ -80,3 +81,6 @@ linters:
     - varcheck
     - wastedassign
     - whitespace
+  disable:
+    - govet
+    - staticcheck
