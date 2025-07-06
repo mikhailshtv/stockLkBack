@@ -33,7 +33,7 @@ jobs:
           GOCACHE: /home/runner/.cache/go-build
         with:
           version: v1.59.1
-          args: --timeout=5m -v --relative-path-mode=gitroot
+          args: --timeout=5m -v
           skip-cache: true
           skip-build-cache: true
 
