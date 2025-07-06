@@ -34,7 +34,7 @@ jobs:
           GOCACHE: /home/runner/.cache/go-build
         with:
           version: v1.59.0
-          args: --timeout=5m --out-format=colored-line-number --print-issued-lines -v
+          args: --timeout=5m --out-format=colored-line-number --print-issued-lines --modules-download-mode=vendor -v
           skip-cache: true
           skip-build-cache: true
 
