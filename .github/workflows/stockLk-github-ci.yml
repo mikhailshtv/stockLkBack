@@ -36,7 +36,7 @@ jobs:
           GOCACHE: /home/runner/.cache/go-build
         with:
           version: v1.59.1
-          args: --timeout=5m --skip-dirs="vendor" -v
+          args: --timeout=5m -v --relative-path-mode=gitroot
           skip-cache: true
           skip-build-cache: true
 
