@@ -34,6 +34,7 @@ linters:
   enable:
     - asciicheck
     - bodyclose
+    - copyloopvar
     - depguard
     - dogsled
     - dupl
@@ -55,6 +56,7 @@ linters:
     - goprintffuncname
     - gosec
     - gosimple
+    - govet
     - importas
     - ineffassign
     - lll
@@ -69,10 +71,12 @@ linters:
     - revive
     - rowserrcheck
     - sqlclosecheck
+    - staticcheck
     - stylecheck
     - tagliatelle
     - thelper
     - tparallel
+    - typecheck
     - unconvert
     - unparam
     - unused
