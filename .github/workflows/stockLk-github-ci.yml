@@ -10,15 +10,25 @@ jobs:
   lint:
     name: Lint with golangci-lint
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: golang/stockLkBack
     steps:
       - name: Clear Go caches
         run: |
           go clean -cache
           go clean -modcache
+      - uses: actions/checkout@v4
+        with:
+          path: golang/stockLkBack
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.24'
+          go-version: '1.24.0'
+      - name: Install dependencies
+        run: |
+          go mod tidy
+          go mod vendor
       - name: Setup Go environment
         run: |
           echo "GOMOD=$(go env GOMOD)" >> $GITHUB_ENV
