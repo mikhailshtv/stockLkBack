@@ -6,17 +6,17 @@ import (
 
 	"golang/stockLkBack/internal/model"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
 )
 
-// Структуры для пользователя и токенов
+// Структуры для пользователя и токенов.
 var (
 	secretKey               = []byte("2k0935h84j39k2ks9df8h4fj3dk2s02kj9f8h4g5")
 	ErrInvalidSigningMethod = errors.New("invalid signing method")
 	ErrInvalidToken         = errors.New("invalid token")
 )
 
-// GenerateToken Функция для создания JWT токена
+// GenerateToken Функция для создания JWT токена.
 func GenerateToken(login string, role model.UserRole) (string, error) {
 	// Устанавливаем срок действия токена (1 час)
 	expirationTime := time.Now().Add(1 * time.Hour)
@@ -25,8 +25,8 @@ func GenerateToken(login string, role model.UserRole) (string, error) {
 	claims := &model.Claims{
 		Login: login,
 		Role:  role,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expirationTime.Unix(),
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: &jwt.NumericDate{Time: expirationTime},
 			Issuer:    "go-gin-jwt-example",
 		},
 	}

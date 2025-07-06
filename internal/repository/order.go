@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"golang/stockLkBack/internal/model"
 	"log"
 	"time"
+
+	"golang/stockLkBack/internal/model"
 
 	"github.com/go-redis/redis/v8"
 	"go.mongodb.org/mongo-driver/bson"
@@ -30,10 +31,10 @@ func (or *OrdersRepository) Create(orderRequest model.OrderRequestBody) (*model.
 	_, err := ordersCollection.Find(context.TODO(), bson.D{})
 	if err != nil {
 		fmt.Println("Коллекция пуста")
-		order.Id = 1
+		order.ID = 1
 		order.Number = 1
 	} else {
-		orderNextId, err := getNextSequence(or.db, "orderid")
+		orderNextID, err := getNextSequence(or.db, "orderid")
 		if err != nil {
 			return nil, err
 		}
@@ -41,14 +42,14 @@ func (or *OrdersRepository) Create(orderRequest model.OrderRequestBody) (*model.
 		if err != nil {
 			return nil, err
 		}
-		order.Id = orderNextId
+		order.ID = orderNextID
 		order.Number = orderNextNumber
 	}
 
 	order.CreatedDate = time.Now().UTC()
 	order.LastModifiedDate = time.Now().UTC()
 	order.Status = model.Active
-	totalCost := 0
+	var totalCost int32
 	for _, product := range orderRequest.Products {
 		totalCost += product.SalePrice
 	}
@@ -74,13 +75,13 @@ func (or *OrdersRepository) GetAll() ([]model.Order, error) {
 	return orders, nil
 }
 
-func (or *OrdersRepository) GetById(id int) (*model.Order, error) {
+func (or *OrdersRepository) GetByID(id int32) (*model.Order, error) {
 	ordersCollection := or.db.Collection(or.collectionName)
 	var result bson.M
 	filter := bson.M{"_id": id}
 	err := ordersCollection.FindOne(context.TODO(), filter).Decode(&result)
 	if err != nil {
-		return nil, errors.New("элемент не найден")
+		return nil, errors.New(NotFoundErrorMessage)
 	}
 	var order model.Order
 	resultBytes, err := bson.Marshal(result)
@@ -95,10 +96,10 @@ func (or *OrdersRepository) GetById(id int) (*model.Order, error) {
 	return &order, nil
 }
 
-func (or *OrdersRepository) Delete(id int) (*model.Order, error) {
+func (or *OrdersRepository) Delete(id int32) (*model.Order, error) {
 	ordersCollection := or.db.Collection(or.collectionName)
 	filter := bson.M{"_id": id}
-	deletingOrder, err := or.GetById(id)
+	deletingOrder, err := or.GetByID(id)
 	if err != nil {
 		return nil, err
 	}
@@ -109,8 +110,8 @@ func (or *OrdersRepository) Delete(id int) (*model.Order, error) {
 	return deletingOrder, nil
 }
 
-func (or *OrdersRepository) Update(id int, order model.OrderRequestBody) (*model.Order, error) {
-	totalCost := 0
+func (or *OrdersRepository) Update(id int32, order model.OrderRequestBody) (*model.Order, error) {
+	var totalCost int32
 	for _, product := range order.Products {
 		totalCost += product.SalePrice
 	}
@@ -123,11 +124,10 @@ func (or *OrdersRepository) Update(id int, order model.OrderRequestBody) (*model
 	if err != nil {
 		return nil, err
 	}
-	return or.GetById(id)
+	return or.GetByID(id)
 }
 
 func (or *OrdersRepository) WriteLog(result any, operation, status string) (int64, error) {
-
 	id, err := or.redis.Incr(context.TODO(), "logOrder:id").Result()
 	if err != nil {
 		return 0, fmt.Errorf("error incrementing ID: %w", err)

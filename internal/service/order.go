@@ -1,9 +1,15 @@
 package service
 
 import (
+	"log"
+
 	"golang/stockLkBack/internal/model"
 	"golang/stockLkBack/internal/repository"
-	"log"
+)
+
+const (
+	logErrorStatus   = "Error"
+	logSuccessStatus = "Success"
 )
 
 type OrdersService struct {
@@ -20,10 +26,10 @@ func (s *OrdersService) Create(order model.OrderRequestBody) (*model.Order, erro
 	var status string
 	if err != nil {
 		result = err
-		status = "Error"
+		status = logErrorStatus
 	} else {
 		result = createdOrder
-		status = "Success"
+		status = logSuccessStatus
 	}
 
 	_, logErr := s.repo.WriteLog(result, "Create", status)
@@ -37,21 +43,21 @@ func (s *OrdersService) GetAll() ([]model.Order, error) {
 	return s.repo.GetAll()
 }
 
-func (s *OrdersService) GetById(id int) (*model.Order, error) {
-	return s.repo.GetById(id)
+func (s *OrdersService) GetByID(id int32) (*model.Order, error) {
+	return s.repo.GetByID(id)
 }
 
-func (s *OrdersService) Delete(id int) error {
+func (s *OrdersService) Delete(id int32) error {
 	delitedOrder, err := s.repo.Delete(id)
 	var result any
 	var status string
 	if err != nil {
 		result = err
-		status = "Error"
+		status = logErrorStatus
+	} else {
+		result = delitedOrder
+		status = logSuccessStatus
 	}
-
-	result = delitedOrder
-	status = "Success"
 
 	_, logErr := s.repo.WriteLog(result, "Delete", status)
 	if logErr != nil {
@@ -60,16 +66,17 @@ func (s *OrdersService) Delete(id int) error {
 	return err
 }
 
-func (s *OrdersService) Update(id int, order model.OrderRequestBody) (*model.Order, error) {
+func (s *OrdersService) Update(id int32, order model.OrderRequestBody) (*model.Order, error) {
 	updatedOrder, err := s.repo.Update(id, order)
 	var result any
 	var status string
 	if err != nil {
 		result = err
-		status = "Error"
+		status = logErrorStatus
+	} else {
+		result = updatedOrder
+		status = logSuccessStatus
 	}
-	result = updatedOrder
-	status = "Success"
 
 	_, logErr := s.repo.WriteLog(result, "Update", status)
 	if logErr != nil {

@@ -1,10 +1,11 @@
 package handler
 
 import (
-	"golang/stockLkBack/internal/model"
 	"log"
 	"net/http"
 	"strconv"
+
+	"golang/stockLkBack/internal/model"
 
 	"github.com/gin-gonic/gin"
 )
@@ -18,7 +19,7 @@ import (
 // @Success 200 {object} model.User
 // @Failure 400 {object} model.Error "Invalid request"
 // @Router /api/v1/users [post]
-// @Security BearerAuth
+// @Security BearerAuth.
 func (h *Handler) CreateUser(ctx *gin.Context) {
 	var userReq model.UserCreateBody
 	if err := ctx.ShouldBindJSON(&userReq); err != nil {
@@ -43,7 +44,7 @@ func (h *Handler) CreateUser(ctx *gin.Context) {
 // @Failure 400 {object} model.Error "Invalid request"
 // @Failure 401 {object} model.Error "Anauthorized"
 // @Failure 500 {object} model.Error "Internal server error"
-// @Router /api/v1/login [post]
+// @Router /api/v1/login [post].
 func (h *Handler) Login(ctx *gin.Context) {
 	var loginRequest model.LoginRequest
 	if err := ctx.ShouldBindJSON(&loginRequest); err != nil {
@@ -75,7 +76,7 @@ func (h *Handler) Login(ctx *gin.Context) {
 // @Failure 400 {object} model.Error "Invalid request"
 // @Param id path string true "id пользователя"
 // @Router /api/v1/users/{id} [put]
-// @Security BearerAuth
+// @Security BearerAuth.
 func (h *Handler) EditUser(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
 	id, err := strconv.Atoi(idStr)
@@ -111,7 +112,7 @@ func (h *Handler) EditUser(ctx *gin.Context) {
 // @Failure 400 {object} model.Error "Invalid request"
 // @Param id path string true "id пользователя"
 // @Router /api/v1/users/{id}/role [patch]
-// @Security BearerAuth
+// @Security BearerAuth.
 func (h *Handler) ChangeUserRole(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
 	id, err := strconv.Atoi(idStr)
@@ -147,7 +148,7 @@ func (h *Handler) ChangeUserRole(ctx *gin.Context) {
 // @Failure 400 {object} model.Error "Invalid request"
 // @Param id path string true "id пользователя"
 // @Router /api/v1/users/{id}/password [patch]
-// @Security BearerAuth
+// @Security BearerAuth.
 func (h *Handler) ChangeUserPassword(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
 	id, err := strconv.Atoi(idStr)
@@ -179,7 +180,7 @@ func (h *Handler) ChangeUserPassword(ctx *gin.Context) {
 // @Success 200 {object} []model.User
 // @Failure 400 {string} string "Invalid request"
 // @Router /api/v1/users [get]
-// @Security BearerAuth
+// @Security BearerAuth.
 func (h *Handler) ListUsers(ctx *gin.Context) {
 	users, err := h.Services.User.GetAll()
 	if err != nil {
@@ -198,14 +199,14 @@ func (h *Handler) ListUsers(ctx *gin.Context) {
 // @Failure 400 {string} string "Invalid request"
 // @Param id path string true "id пользователя"
 // @Router /api/v1/users/{id} [get]
-// @Security BearerAuth
-func (h *Handler) GetUserById(ctx *gin.Context) {
+// @Security BearerAuth.
+func (h *Handler) GetUserByID(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		log.Fatal(err)
 	}
-	user, err := h.Services.User.GetById(id)
+	user, err := h.Services.User.GetByID(id)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		ctx.Abort()
@@ -222,7 +223,7 @@ func (h *Handler) GetUserById(ctx *gin.Context) {
 // @Failure 400 {string} string "Invalid request"
 // @Param id path string true "id пользователя"
 // @Router /api/v1/users/{id} [delete]
-// @Security BearerAuth
+// @Security BearerAuth.
 func (h *Handler) DeleteUser(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
 	id, err := strconv.Atoi(idStr)

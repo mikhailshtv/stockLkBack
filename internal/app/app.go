@@ -3,15 +3,16 @@ package app
 import (
 	"context"
 	"fmt"
-	"golang/stockLkBack/internal/config"
-	"golang/stockLkBack/internal/handler"
-	"golang/stockLkBack/internal/middleware"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"golang/stockLkBack/internal/config"
+	"golang/stockLkBack/internal/handler"
+	"golang/stockLkBack/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -42,7 +43,7 @@ func (a *App) Start(r *gin.Engine) error {
 			orders.POST("", middleware.TokenAuthMiddleware(), a.handler.CreateOrder)
 			orders.PUT("/:id", middleware.TokenAuthMiddleware(), a.handler.EditOrder)
 			orders.GET("", middleware.TokenAuthMiddleware(), a.handler.ListOrders)
-			orders.GET("/:id", middleware.TokenAuthMiddleware(), a.handler.GetOrderById)
+			orders.GET("/:id", middleware.TokenAuthMiddleware(), a.handler.GetOrderByID)
 			orders.DELETE("/:id", middleware.TokenAuthMiddleware(), a.handler.DeleteOrder)
 		}
 		products := api.Group("/products")
@@ -50,7 +51,7 @@ func (a *App) Start(r *gin.Engine) error {
 			products.POST("", middleware.TokenAuthMiddleware(), a.handler.CreateProduct)
 			products.PUT("/:id", middleware.TokenAuthMiddleware(), a.handler.EditProduct)
 			products.GET("", middleware.TokenAuthMiddleware(), a.handler.ListProduct)
-			products.GET("/:id", middleware.TokenAuthMiddleware(), a.handler.GetProductById)
+			products.GET("/:id", middleware.TokenAuthMiddleware(), a.handler.GetProductByID)
 			products.DELETE("/:id", middleware.TokenAuthMiddleware(), a.handler.DeleteProduct)
 		}
 		users := api.Group("/users")
@@ -58,7 +59,7 @@ func (a *App) Start(r *gin.Engine) error {
 			users.POST("", a.handler.CreateUser) // фактически регистрация пользователя
 			users.PUT("/:id", middleware.TokenAuthMiddleware(), a.handler.EditUser)
 			users.GET("", middleware.TokenAuthMiddleware(), a.handler.ListUsers)
-			users.GET("/:id", middleware.TokenAuthMiddleware(), a.handler.GetUserById)
+			users.GET("/:id", middleware.TokenAuthMiddleware(), a.handler.GetUserByID)
 			users.DELETE("/:id", middleware.TokenAuthMiddleware(), a.handler.DeleteUser)
 			users.PATCH("/:id/role", middleware.TokenAuthMiddleware(), a.handler.ChangeUserRole)
 			users.PATCH("/:id/password", middleware.TokenAuthMiddleware(), a.handler.ChangeUserPassword)
@@ -66,8 +67,12 @@ func (a *App) Start(r *gin.Engine) error {
 	}
 
 	serverHTTP := &http.Server{
-		Addr:    fmt.Sprintf("%s:%d", a.cfg.Host, a.cfg.Port),
-		Handler: r,
+		Addr:              fmt.Sprintf("%s:%d", a.cfg.Host, a.cfg.Port),
+		Handler:           r,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       30 * time.Second,
 	}
 
 	go func() {
@@ -82,7 +87,7 @@ func (a *App) Start(r *gin.Engine) error {
 	ctxT, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	if err := serverHTTP.Shutdown(ctxT); err != nil {
-		return fmt.Errorf("shutdown server: %s", err)
+		return fmt.Errorf("shutdown server: %w", err)
 	}
 	log.Println("FINAL server shutdown")
 	return nil

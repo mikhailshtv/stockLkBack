@@ -12,16 +12,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+            go-version: '1.24.0'
+
+      - name: Install build dependencies
+        run: sudo apt-get update && sudo apt-get install -y gcc
+      
+      - name: Install dependencies
+        run: |
+          go mod tidy
+          go mod vendor
+          go mod download
+
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v3
+        env:
+          GO111MODULE: on
+          CGO_ENABLED: 1
         with:
-          version: latest
-          args: --timeout=5m
+          version: v1.59.0
+          args: --timeout=5m --out-format=colored-line-number --print-issued-lines -v
+          skip-cache: true
+          skip-build-cache: true
 
   test:
     name: Run unit tests
     runs-on: ubuntu-latest
-    needs: lint
+    
     steps:
       - uses: actions/checkout@v4
       - name: Set up Go
@@ -34,7 +52,7 @@ jobs:
   build:
     name: Build binary
     runs-on: ubuntu-latest
-    needs: test
+    
     steps:
       - uses: actions/checkout@v4
       - name: Set up Go

@@ -5,9 +5,9 @@ type Config struct {
 	Port       int
 	Secret     string
 	Group      string
-	DbName     string
-	DbUsername string
-	DbPassword string
+	DBName     string
+	DBUsername string
+	DBPassword string
 }
 
 var Cfg Config
@@ -17,9 +17,9 @@ func NewConfig() *Config {
 		Host:       "localhost",
 		Port:       8080,
 		Group:      "/api/v1",
-		DbName:     "stockLk",
-		DbUsername: "mongo_user",
-		DbPassword: "mongo_pass",
+		DBName:     "stockLk",
+		DBUsername: "mongo_user",
+		DBPassword: "mongo_pass",
 	}
 	return &Cfg
 }

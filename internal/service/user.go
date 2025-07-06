@@ -21,8 +21,8 @@ func (s *UsersService) GetAll() ([]model.User, error) {
 	return s.repo.GetAll()
 }
 
-func (s *UsersService) GetById(id int) (*model.User, error) {
-	return s.repo.GetById(id)
+func (s *UsersService) GetByID(id int) (*model.User, error) {
+	return s.repo.GetByID(id)
 }
 
 func (s *UsersService) Delete(id int) error {

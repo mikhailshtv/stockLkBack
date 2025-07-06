@@ -1,10 +1,11 @@
 package handler
 
 import (
-	"golang/stockLkBack/internal/model"
 	"log"
 	"net/http"
-	"strconv"
+
+	"golang/stockLkBack/internal/model"
+	"golang/stockLkBack/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -18,7 +19,7 @@ import (
 // @Success 200 {object} model.Product
 // @Failure 400 {object} model.Error "Invalid request"
 // @Router /api/v1/products [post]
-// @Security BearerAuth
+// @Security BearerAuth.
 func (h *Handler) CreateProduct(ctx *gin.Context) {
 	var productReq model.ProductRequestBody
 	if err := ctx.ShouldBindJSON(&productReq); err != nil {
@@ -44,10 +45,10 @@ func (h *Handler) CreateProduct(ctx *gin.Context) {
 // @Failure 400 {object} model.Error "Invalid request"
 // @Param id path string true "id продукта"
 // @Router /api/v1/products/{id} [put]
-// @Security BearerAuth
+// @Security BearerAuth.
 func (h *Handler) EditProduct(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
-	id, err := strconv.Atoi(idStr)
+	id, err := service.ParseInt32(idStr)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -71,7 +72,7 @@ func (h *Handler) EditProduct(ctx *gin.Context) {
 // @Success 200 {object} []model.Product
 // @Failure 400 {string} string "Invalid request"
 // @Router /api/v1/products [get]
-// @Security BearerAuth
+// @Security BearerAuth.
 func (h *Handler) ListProduct(ctx *gin.Context) {
 	products, err := h.Services.Product.GetAll()
 	if err != nil {
@@ -89,14 +90,14 @@ func (h *Handler) ListProduct(ctx *gin.Context) {
 // @Failure 400 {string} string "Invalid request"
 // @Param id path string true "id продукта"
 // @Router /api/v1/products/{id} [get]
-// @Security BearerAuth
-func (h *Handler) GetProductById(ctx *gin.Context) {
+// @Security BearerAuth.
+func (h *Handler) GetProductByID(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
-	id, err := strconv.Atoi(idStr)
+	id, err := service.ParseInt32(idStr)
 	if err != nil {
 		log.Fatal(err)
 	}
-	product, err := h.Services.Product.GetById(id)
+	product, err := h.Services.Product.GetByID(id)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -112,10 +113,10 @@ func (h *Handler) GetProductById(ctx *gin.Context) {
 // @Failure 400 {string} string "Invalid request"
 // @Param id path string true "id продукта"
 // @Router /api/v1/products/{id} [delete]
-// @Security BearerAuth
+// @Security BearerAuth.
 func (h *Handler) DeleteProduct(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
-	id, err := strconv.Atoi(idStr)
+	id, err := service.ParseInt32(idStr)
 	if err != nil {
 		log.Fatal(err)
 	}

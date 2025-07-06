@@ -3,7 +3,7 @@ package model
 import (
 	"encoding/json"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -15,7 +15,7 @@ const (
 )
 
 type User struct {
-	Id           int      `json:"id"`
+	ID           int      `json:"id"`
 	Login        string   `json:"login" binding:"required"`
 	passwordHash string   `json:"-"`
 	FirstName    string   `json:"firstName" binding:"required"`
@@ -25,7 +25,7 @@ type User struct {
 }
 
 type UserProxy struct {
-	Id              int      `json:"id"`
+	ID              int      `json:"id"`
 	Login           string   `json:"login"`
 	Password        string   `json:"password"`
 	PasswordConfirm string   `json:"passwordConfirm"`
@@ -64,11 +64,11 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
-// Claims Структура для JWT токена
+// Claims Структура для JWT токена.
 type Claims struct {
-	Login              string   `json:"login"`
-	Role               UserRole `json:"role"`
-	jwt.StandardClaims          // Данное поле нужно для правильной генерации JWT
+	Login                string   `json:"login"`
+	Role                 UserRole `json:"role"`
+	jwt.RegisteredClaims          // Данное поле нужно для правильной генерации JWT.
 }
 
 func (user *User) CheckUserPassword(password string) bool {
@@ -81,6 +81,7 @@ func (user *User) HashPassword(password string) error {
 	user.passwordHash = string(bytes)
 	return err
 }
+
 func (user *User) PasswordHash() string {
 	return user.passwordHash
 }
