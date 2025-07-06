@@ -53,7 +53,6 @@ linters:
     - goprintffuncname
     - gosec
     - gosimple
-    - govet
     - ifshort
     - importas
     - ineffassign
@@ -69,7 +68,6 @@ linters:
     - revive
     - rowserrcheck
     - sqlclosecheck
-    - staticcheck
     - structcheck
     - stylecheck
     - tagliatelle
