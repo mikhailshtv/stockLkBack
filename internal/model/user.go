@@ -3,7 +3,7 @@ package model
 import (
 	"encoding/json"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -66,9 +66,9 @@ type LoginRequest struct {
 
 // Claims Структура для JWT токена.
 type Claims struct {
-	Login              string   `json:"login"`
-	Role               UserRole `json:"role"`
-	jwt.StandardClaims          // Данное поле нужно для правильной генерации JWT.
+	Login                string   `json:"login"`
+	Role                 UserRole `json:"role"`
+	jwt.RegisteredClaims          // Данное поле нужно для правильной генерации JWT.
 }
 
 func (user *User) CheckUserPassword(password string) bool {

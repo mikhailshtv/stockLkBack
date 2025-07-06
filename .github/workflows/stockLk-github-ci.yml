@@ -11,8 +11,6 @@ jobs:
     name: Lint with golangci-lint
     runs-on: ubuntu-latest
     steps:
-      - name: Debug Go env
-        run: go env
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:

@@ -6,7 +6,7 @@ import (
 
 	"golang/stockLkBack/internal/model"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // Структуры для пользователя и токенов.
@@ -25,8 +25,8 @@ func GenerateToken(login string, role model.UserRole) (string, error) {
 	claims := &model.Claims{
 		Login: login,
 		Role:  role,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expirationTime.Unix(),
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: &jwt.NumericDate{Time: expirationTime},
 			Issuer:    "go-gin-jwt-example",
 		},
 	}
