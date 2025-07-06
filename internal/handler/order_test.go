@@ -12,8 +12,8 @@ import (
 	mock_service "golang/stockLkBack/internal/service/mocks"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/assert/v2"
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestHandler_CreateOrder(t *testing.T) {
