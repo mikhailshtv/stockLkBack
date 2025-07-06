@@ -10,36 +10,25 @@ jobs:
   lint:
     name: Lint with golangci-lint
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: golang/stockLkBack
     steps:
       - name: Clear Go caches
         run: |
           go clean -cache
           go clean -modcache
-      - uses: actions/checkout@v4
-        with:
-          path: golang/stockLkBack
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
           go-version: '1.24.0'
-      - name: Install dependencies
-        run: |
-          go mod tidy
-          go mod vendor
-      - name: Setup Go environment
-        run: |
-          echo "GOMOD=$(go env GOMOD)" >> $GITHUB_ENV
-          echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
       - name: Debug Go env
         run: go env
       - uses: actions/checkout@v4
       - name: Run golangci-lint
-        working-directory: golang/stockLkBack
-        run: |
-          golangci-lint run --timeout=5m --out-format=colored-line-number --print-issued-lines -v
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.59.0
+          args: --timeout=5m --out-format=colored-line-number --print-issued-lines -v
+          skip-cache: true
+          skip-build-cache: true
 
   test:
     name: Run unit tests
