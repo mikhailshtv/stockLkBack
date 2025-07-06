@@ -22,10 +22,14 @@ jobs:
       - name: Install dependencies
         run: |
           go mod tidy
+          go mod vendor
           go mod download
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v3
+        env:
+          GO111MODULE: on
+          CGO_ENABLED: 1
         with:
           version: v1.59.0
           args: --timeout=5m --out-format=colored-line-number --print-issued-lines -v
