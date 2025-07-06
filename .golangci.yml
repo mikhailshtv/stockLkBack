@@ -81,6 +81,3 @@ linters:
     - varcheck
     - wastedassign
     - whitespace
-  disable:
-    - govet
-    - staticcheck
