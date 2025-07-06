@@ -15,10 +15,9 @@ jobs:
       - uses: actions/setup-go@v4
         with:
             go-version: '1.24.0'
+            cache: true
+            cache-dependency-path: go.mod    
 
-      - name: Install build dependencies
-        run: sudo apt-get update && sudo apt-get install -y gcc
-      
       - name: Install dependencies
         run: |
           go mod tidy
@@ -30,16 +29,18 @@ jobs:
         env:
           GO111MODULE: on
           CGO_ENABLED: 1
+          GOMODCACHE: /home/runner/go/pkg/mod
+          GOCACHE: /home/runner/.cache/go-build
         with:
-          version: v1.59.0
-          args: --timeout=5m --out-format=colored-line-number --print-issued-lines -v
+          version: v1.64.8
+          args: --timeout=5m -v --out-format=colored-line-number
           skip-cache: true
           skip-build-cache: true
 
   test:
     name: Run unit tests
     runs-on: ubuntu-latest
-    
+    needs: lint
     steps:
       - uses: actions/checkout@v4
       - name: Set up Go
@@ -52,7 +53,7 @@ jobs:
   build:
     name: Build binary
     runs-on: ubuntu-latest
-    
+    needs: test
     steps:
       - uses: actions/checkout@v4
       - name: Set up Go
