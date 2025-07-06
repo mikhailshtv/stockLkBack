@@ -10,10 +10,10 @@ import (
 
 type Counter struct {
 	ID  string `bson:"_id"`
-	Seq int    `bson:"seq"`
+	Seq int32  `bson:"seq"`
 }
 
-func getNextSequence(db *mongo.Database, counterName string) (int, error) {
+func getNextSequence(db *mongo.Database, counterName string) (int32, error) {
 	collection := db.Collection("counters")
 
 	filter := bson.M{"_id": counterName}
@@ -22,7 +22,6 @@ func getNextSequence(db *mongo.Database, counterName string) (int, error) {
 
 	var counter Counter
 	err := collection.FindOneAndUpdate(context.TODO(), filter, update, opts).Decode(&counter)
-
 	if err != nil {
 		return 0, err
 	}

@@ -21,14 +21,14 @@ func (s *ProductsService) GetAll() ([]model.Product, error) {
 	return s.repo.GetAll()
 }
 
-func (s *ProductsService) GetById(id int) (*model.Product, error) {
-	return s.repo.GetById(id)
+func (s *ProductsService) GetByID(id int32) (*model.Product, error) {
+	return s.repo.GetByID(id)
 }
 
-func (s *ProductsService) Delete(id int) error {
+func (s *ProductsService) Delete(id int32) error {
 	return s.repo.Delete(id)
 }
 
-func (s *ProductsService) Update(id int, product model.ProductRequestBody) (*model.Product, error) {
+func (s *ProductsService) Update(id int32, product model.ProductRequestBody) (*model.Product, error) {
 	return s.repo.Update(id, product)
 }

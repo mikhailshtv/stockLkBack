@@ -2,11 +2,13 @@ package service
 
 import (
 	"errors"
-	"golang/stockLkBack/internal/model"
-	mocks "golang/stockLkBack/internal/service/mocks"
 	"reflect"
 	"testing"
 	"time"
+
+	"golang/stockLkBack/internal/model"
+	"golang/stockLkBack/internal/repository"
+	mocks "golang/stockLkBack/internal/service/mocks"
 
 	"github.com/golang/mock/gomock"
 )
@@ -15,7 +17,7 @@ func TestOrderService_Create(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	t.Cleanup(func() { ctrl.Finish() })
 
 	dbMock := mocks.NewMockOrder(ctrl)
 
@@ -33,7 +35,7 @@ func TestOrderService_Create(t *testing.T) {
 					model.OrderRequestBody{
 						Products: []model.Product{
 							{
-								Id:            1,
+								ID:            1,
 								Code:          14823,
 								Quantity:      215,
 								Name:          "Cheese",
@@ -44,7 +46,7 @@ func TestOrderService_Create(t *testing.T) {
 					},
 				).Return(
 					&model.Order{
-						Id:               1,
+						ID:               1,
 						Number:           1,
 						TotalCost:        74000,
 						CreatedDate:      time.Date(2025, time.May, 25, 12, 17, 16, 550631000, time.UTC),
@@ -52,7 +54,7 @@ func TestOrderService_Create(t *testing.T) {
 						Status:           1,
 						Products: []model.Product{
 							{
-								Id:            1,
+								ID:            1,
 								Code:          14823,
 								Quantity:      215,
 								Name:          "Cheese",
@@ -66,7 +68,7 @@ func TestOrderService_Create(t *testing.T) {
 			args: model.OrderRequestBody{
 				Products: []model.Product{
 					{
-						Id:            1,
+						ID:            1,
 						Code:          14823,
 						Quantity:      215,
 						Name:          "Cheese",
@@ -76,7 +78,7 @@ func TestOrderService_Create(t *testing.T) {
 				},
 			},
 			want: &model.Order{
-				Id:               1,
+				ID:               1,
 				Number:           1,
 				TotalCost:        74000,
 				CreatedDate:      time.Date(2025, time.May, 25, 12, 17, 16, 550631000, time.UTC),
@@ -84,7 +86,7 @@ func TestOrderService_Create(t *testing.T) {
 				Status:           1,
 				Products: []model.Product{
 					{
-						Id:            1,
+						ID:            1,
 						Code:          14823,
 						Quantity:      215,
 						Name:          "Cheese",
@@ -102,7 +104,7 @@ func TestOrderService_Create(t *testing.T) {
 					model.OrderRequestBody{
 						Products: []model.Product{
 							{
-								Id:            1,
+								ID:            1,
 								Code:          14823,
 								Quantity:      215,
 								Name:          "Cheese",
@@ -119,7 +121,7 @@ func TestOrderService_Create(t *testing.T) {
 			args: model.OrderRequestBody{
 				Products: []model.Product{
 					{
-						Id:            1,
+						ID:            1,
 						Code:          14823,
 						Quantity:      215,
 						Name:          "Cheese",
@@ -156,14 +158,12 @@ func TestOrderService_Create(t *testing.T) {
 
 func TestOrderService_Update(t *testing.T) {
 	t.Parallel()
-
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
+	t.Cleanup(func() { ctrl.Finish() })
 	dbMock := mocks.NewMockOrder(ctrl)
 
 	type requestBody struct {
-		id   int
+		id   int32
 		body model.OrderRequestBody
 	}
 
@@ -182,7 +182,7 @@ func TestOrderService_Update(t *testing.T) {
 					model.OrderRequestBody{
 						Products: []model.Product{
 							{
-								Id:            1,
+								ID:            1,
 								Code:          14823,
 								Quantity:      215,
 								Name:          "Pizza",
@@ -193,15 +193,15 @@ func TestOrderService_Update(t *testing.T) {
 					},
 				).Return(
 					&model.Order{
-						Id:               1,
+						ID:               1,
 						Number:           1,
 						TotalCost:        74000,
 						CreatedDate:      time.Date(2025, time.May, 25, 12, 17, 16, 550631000, time.UTC),
-						LastModifiedDate: time.Date(2025, time.June, 15, 12, 00, 00, 0, time.UTC),
+						LastModifiedDate: time.Date(2025, time.June, 15, 12, 0o0, 0o0, 0, time.UTC),
 						Status:           1,
 						Products: []model.Product{
 							{
-								Id:            1,
+								ID:            1,
 								Code:          14823,
 								Quantity:      215,
 								Name:          "Pizza",
@@ -217,7 +217,7 @@ func TestOrderService_Update(t *testing.T) {
 				body: model.OrderRequestBody{
 					Products: []model.Product{
 						{
-							Id:            1,
+							ID:            1,
 							Code:          14823,
 							Quantity:      215,
 							Name:          "Pizza",
@@ -228,15 +228,15 @@ func TestOrderService_Update(t *testing.T) {
 				},
 			},
 			want: &model.Order{
-				Id:               1,
+				ID:               1,
 				Number:           1,
 				TotalCost:        74000,
 				CreatedDate:      time.Date(2025, time.May, 25, 12, 17, 16, 550631000, time.UTC),
-				LastModifiedDate: time.Date(2025, time.June, 15, 12, 00, 00, 0, time.UTC),
+				LastModifiedDate: time.Date(2025, time.June, 15, 12, 0o0, 0o0, 0, time.UTC),
 				Status:           1,
 				Products: []model.Product{
 					{
-						Id:            1,
+						ID:            1,
 						Code:          14823,
 						Quantity:      215,
 						Name:          "Pizza",
@@ -255,7 +255,7 @@ func TestOrderService_Update(t *testing.T) {
 					model.OrderRequestBody{
 						Products: []model.Product{
 							{
-								Id:            1,
+								ID:            1,
 								Code:          14823,
 								Quantity:      215,
 								Name:          "Pizza",
@@ -266,7 +266,7 @@ func TestOrderService_Update(t *testing.T) {
 					},
 				).Return(
 					nil,
-					errors.New("элемент не найден"),
+					errors.New(repository.NotFoundErrorMessage),
 				)
 			},
 			args: requestBody{
@@ -274,7 +274,7 @@ func TestOrderService_Update(t *testing.T) {
 				body: model.OrderRequestBody{
 					Products: []model.Product{
 						{
-							Id:            1,
+							ID:            1,
 							Code:          14823,
 							Quantity:      215,
 							Name:          "Pizza",
@@ -292,17 +292,13 @@ func TestOrderService_Update(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-
 			os := &Service{Order: dbMock}
-
 			tt.mock()
-
 			got, err := os.Order.Update(tt.args.id, tt.args.body)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Ошибка обноления заказа error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Ошибка обноления заказа got = %v, want %v", got, tt.want)
 			}
@@ -314,7 +310,7 @@ func TestOrderService_GetAll(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	t.Cleanup(func() { ctrl.Finish() })
 
 	dbMock := mocks.NewMockOrder(ctrl)
 
@@ -330,15 +326,15 @@ func TestOrderService_GetAll(t *testing.T) {
 				dbMock.EXPECT().GetAll().Return(
 					[]model.Order{
 						{
-							Id:               1,
+							ID:               1,
 							Number:           1,
 							TotalCost:        74000,
 							CreatedDate:      time.Date(2025, time.May, 25, 12, 17, 16, 550631000, time.UTC),
-							LastModifiedDate: time.Date(2025, time.June, 15, 12, 00, 00, 0, time.UTC),
+							LastModifiedDate: time.Date(2025, time.June, 15, 12, 0o0, 0o0, 0, time.UTC),
 							Status:           1,
 							Products: []model.Product{
 								{
-									Id:            1,
+									ID:            1,
 									Code:          14823,
 									Quantity:      215,
 									Name:          "Pizza",
@@ -352,15 +348,15 @@ func TestOrderService_GetAll(t *testing.T) {
 			},
 			want: []model.Order{
 				{
-					Id:               1,
+					ID:               1,
 					Number:           1,
 					TotalCost:        74000,
 					CreatedDate:      time.Date(2025, time.May, 25, 12, 17, 16, 550631000, time.UTC),
-					LastModifiedDate: time.Date(2025, time.June, 15, 12, 00, 00, 0, time.UTC),
+					LastModifiedDate: time.Date(2025, time.June, 15, 12, 0o0, 0o0, 0, time.UTC),
 					Status:           1,
 					Products: []model.Product{
 						{
-							Id:            1,
+							ID:            1,
 							Code:          14823,
 							Quantity:      215,
 							Name:          "Pizza",
@@ -399,31 +395,31 @@ func TestOrderService_GetById(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	t.Cleanup(func() { ctrl.Finish() })
 
 	dbMock := mocks.NewMockOrder(ctrl)
 
 	tests := []struct {
 		name    string
 		mock    func()
-		args    int
+		args    int32
 		want    *model.Order
 		wantErr bool
 	}{
 		{
 			name: "success",
 			mock: func() {
-				dbMock.EXPECT().GetById(1).Return(
+				dbMock.EXPECT().GetByID(1).Return(
 					&model.Order{
-						Id:               1,
+						ID:               1,
 						Number:           1,
 						TotalCost:        74000,
 						CreatedDate:      time.Date(2025, time.May, 25, 12, 17, 16, 550631000, time.UTC),
-						LastModifiedDate: time.Date(2025, time.June, 15, 12, 00, 00, 0, time.UTC),
+						LastModifiedDate: time.Date(2025, time.June, 15, 12, 0o0, 0o0, 0, time.UTC),
 						Status:           1,
 						Products: []model.Product{
 							{
-								Id:            1,
+								ID:            1,
 								Code:          14823,
 								Quantity:      215,
 								Name:          "Pizza",
@@ -436,15 +432,15 @@ func TestOrderService_GetById(t *testing.T) {
 			},
 			args: 1,
 			want: &model.Order{
-				Id:               1,
+				ID:               1,
 				Number:           1,
 				TotalCost:        74000,
 				CreatedDate:      time.Date(2025, time.May, 25, 12, 17, 16, 550631000, time.UTC),
-				LastModifiedDate: time.Date(2025, time.June, 15, 12, 00, 00, 0, time.UTC),
+				LastModifiedDate: time.Date(2025, time.June, 15, 12, 0o0, 0o0, 0, time.UTC),
 				Status:           1,
 				Products: []model.Product{
 					{
-						Id:            1,
+						ID:            1,
 						Code:          14823,
 						Quantity:      215,
 						Name:          "Pizza",
@@ -458,9 +454,9 @@ func TestOrderService_GetById(t *testing.T) {
 		{
 			name: "error",
 			mock: func() {
-				dbMock.EXPECT().GetById(1).Return(
+				dbMock.EXPECT().GetByID(1).Return(
 					nil,
-					errors.New("элемент не найден"),
+					errors.New(repository.NotFoundErrorMessage),
 				)
 			},
 			args:    1,
@@ -477,7 +473,7 @@ func TestOrderService_GetById(t *testing.T) {
 
 			tt.mock()
 
-			got, err := os.Order.GetById(tt.args)
+			got, err := os.Order.GetByID(tt.args)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Ошибка получения заказа по id error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -489,18 +485,19 @@ func TestOrderService_GetById(t *testing.T) {
 		})
 	}
 }
+
 func TestOrderService_Delete(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	t.Cleanup(func() { ctrl.Finish() })
 
 	dbMock := mocks.NewMockOrder(ctrl)
 
 	tests := []struct {
 		name    string
 		mock    func()
-		args    int
+		args    int32
 		want    error
 		wantErr bool
 	}{
@@ -535,7 +532,7 @@ func TestOrderService_Delete(t *testing.T) {
 			tt.mock()
 
 			err := os.Order.Delete(tt.args)
-			if err != tt.want && err.Error() != tt.want.Error() {
+			if !errors.Is(err, tt.want) && err.Error() != tt.want.Error() {
 				t.Errorf("Ошибка удаления заказа по id error = %v, want %v", err, tt.want)
 				return
 			}

@@ -5,6 +5,23 @@ linters-settings:
   funlen:
     lines: 150
     statements: 80
+  depguard:
+    rules:
+      main:
+        list-mode: lax
+        allow: 
+          - github.com/swaggo/gin-swagger
+  gci:
+    sections:
+      - standard
+      - prefix(golang/stockLkBack/)
+      - default
+    skip-generated: true
+    custom-order: true
+  gofumpt:
+    extra-rules: true
+    module-path: "golang/stockLkBack"
+
 
 linters:
   disable-all: true

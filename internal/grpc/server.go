@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"golang/stockLkBack/internal/handler"
-	"golang/stockLkBack/internal/model"
 	"log"
 	"net"
 	"time"
+
+	"golang/stockLkBack/internal/handler"
+	"golang/stockLkBack/internal/model"
+	"golang/stockLkBack/internal/repository"
 
 	"github.com/mikhailshtv/proto_api/pkg/grpc/v1/orders_api"
 	"google.golang.org/grpc"
@@ -38,7 +40,7 @@ func (s *server) GetOrders(
 			log.Println(err.Error())
 		}
 	}
-	ordersJson, err := json.Marshal(ordersAll)
+	ordersJSON, err := json.Marshal(ordersAll)
 	if err != nil {
 		log.Println(err.Error())
 		err = status.Errorf(codes.Internal, "Ошибка при конвертации в JSON")
@@ -47,7 +49,7 @@ func (s *server) GetOrders(
 		}
 	}
 	var orders []*orders_api.Order
-	err = json.Unmarshal(ordersJson, &orders)
+	err = json.Unmarshal(ordersJSON, &orders)
 	if err != nil {
 		log.Println(err.Error())
 	}
@@ -60,8 +62,8 @@ func (s *server) GetOrder(
 	_ context.Context,
 	req *orders_api.OrderActionByIdRequest,
 ) (*orders_api.GetOrderResponse, error) {
-	orderId := req.GetId()
-	if orderId <= 0 {
+	orderID := req.GetId()
+	if orderID <= 0 {
 		err := status.Errorf(codes.InvalidArgument, "id должен быть больше чем 0")
 		if err != nil {
 			log.Println(err.Error())
@@ -69,25 +71,22 @@ func (s *server) GetOrder(
 		return nil, err
 	}
 
-	receivedOrder, err := s.handler.Services.Order.GetById(int(orderId))
+	receivedOrder, err := s.handler.Services.Order.GetByID(orderID)
 	if err != nil {
-		log.Fatal(err.Error())
-		if err.Error() == "элемент не найден" {
+		if err.Error() == repository.NotFoundErrorMessage {
 			err = status.Errorf(codes.NotFound, "Объект не найден")
 			if err != nil {
 				log.Println(err.Error())
 			}
 			return nil, err
-		} else {
-			err = status.Errorf(codes.Internal, err.Error())
-			if err != nil {
-				log.Println(err.Error())
-			}
-			return nil, err
 		}
-
+		err = status.Errorf(codes.Internal, "%s", err.Error())
+		if err != nil {
+			log.Println(err.Error())
+		}
+		return nil, err
 	}
-	orderJson, err := json.Marshal(receivedOrder)
+	orderJSON, err := json.Marshal(receivedOrder)
 	if err != nil {
 		log.Println(err.Error())
 		err = status.Errorf(codes.Internal, "Ошибка при конвертации в JSON")
@@ -96,7 +95,7 @@ func (s *server) GetOrder(
 		}
 	}
 	var order *orders_api.Order
-	err = json.Unmarshal(orderJson, &order)
+	err = json.Unmarshal(orderJSON, &order)
 	if err != nil {
 		log.Println(err.Error())
 	}
@@ -110,7 +109,7 @@ func (s *server) CreateOrder(
 	req *orders_api.OrderCreateRequest,
 ) (*orders_api.Order, error) {
 	products := req.Products
-	productsJson, err := json.Marshal(products)
+	productsJSON, err := json.Marshal(products)
 	if err != nil {
 		log.Println(err.Error())
 		err = status.Errorf(codes.Internal, "Ошибка при конвертации в JSON")
@@ -120,7 +119,7 @@ func (s *server) CreateOrder(
 	}
 	var orderReq model.OrderRequestBody
 
-	err = json.Unmarshal(productsJson, &orderReq.Products)
+	err = json.Unmarshal(productsJSON, &orderReq.Products)
 	if err != nil {
 		log.Println(err.Error())
 	}
@@ -132,10 +131,11 @@ func (s *server) CreateOrder(
 			log.Println(err.Error())
 		}
 	}
+
 	return &orders_api.Order{
-		Id:               int32(order.Id),
-		Number:           int32(order.Number),
-		TotalCost:        int32(order.TotalCost),
+		Id:               order.ID,
+		Number:           order.Number,
+		TotalCost:        order.TotalCost,
 		CreatedDate:      timestamppb.New(order.CreatedDate),
 		LastModifiedDate: timestamppb.New(order.LastModifiedDate),
 		Status:           int32(order.Status),
@@ -147,8 +147,8 @@ func (s *server) EditOrder(
 	_ context.Context,
 	req *orders_api.OrderEditRequest,
 ) (*orders_api.Order, error) {
-	orderId := req.GetId()
-	if orderId <= 0 {
+	orderID := req.GetId()
+	if orderID <= 0 {
 		err := status.Errorf(codes.InvalidArgument, "id должен быть больше чем 0")
 		if err != nil {
 			log.Println(err.Error())
@@ -158,7 +158,7 @@ func (s *server) EditOrder(
 	products := req.Products
 
 	var orderReq model.OrderRequestBody
-	orderReqJson, err := json.Marshal(req)
+	orderReqJSON, err := json.Marshal(req)
 	if err != nil {
 		log.Println(err.Error())
 		err = status.Errorf(codes.Internal, "Ошибка при конвертации в JSON")
@@ -166,7 +166,7 @@ func (s *server) EditOrder(
 			log.Println(err.Error())
 		}
 	}
-	if err := json.Unmarshal(orderReqJson, &orderReq); err != nil {
+	if err := json.Unmarshal(orderReqJSON, &orderReq); err != nil {
 		log.Println(err.Error())
 		err = status.Errorf(codes.Internal, "Ошибка десериализации")
 		if err != nil {
@@ -174,28 +174,27 @@ func (s *server) EditOrder(
 		}
 	}
 
-	order, err := s.handler.Services.Order.Update(int(orderId), orderReq)
+	order, err := s.handler.Services.Order.Update(orderID, orderReq)
 	if err != nil {
 		log.Println(err.Error())
-		if err.Error() == "элемент не найден" {
+		if err.Error() == repository.NotFoundErrorMessage {
 			err = status.Errorf(codes.NotFound, "Объект не найден")
 			if err != nil {
 				log.Println(err.Error())
 			}
 			return nil, errors.New("объект не найден")
-		} else {
-			err = status.Errorf(codes.Internal, err.Error())
-			if err != nil {
-				log.Println(err.Error())
-			}
-			return nil, err
 		}
+		err = status.Errorf(codes.Internal, "%s", err.Error())
+		if err != nil {
+			log.Println(err.Error())
+		}
+		return nil, err
 	}
 
 	return &orders_api.Order{
-		Id:               int32(order.Id),
-		Number:           int32(order.Number),
-		TotalCost:        int32(order.TotalCost),
+		Id:               order.ID,
+		Number:           order.Number,
+		TotalCost:        order.TotalCost,
 		CreatedDate:      timestamppb.New(order.CreatedDate),
 		LastModifiedDate: timestamppb.New(order.LastModifiedDate),
 		Status:           int32(order.Status),
@@ -207,8 +206,8 @@ func (s *server) DeleteOrder(
 	_ context.Context,
 	req *orders_api.OrderActionByIdRequest,
 ) (*orders_api.Success, error) {
-	orderId := req.GetId()
-	if orderId <= 0 {
+	orderID := req.GetId()
+	if orderID <= 0 {
 		err := status.Errorf(codes.InvalidArgument, "id должен быть больше чем 0")
 		if err != nil {
 			log.Println(err.Error())
@@ -216,21 +215,20 @@ func (s *server) DeleteOrder(
 		return nil, err
 	}
 
-	err := s.handler.Services.Order.Delete(int(orderId))
+	err := s.handler.Services.Order.Delete(orderID)
 	if err != nil {
-		if err.Error() == "элемент не найден" {
+		if err.Error() == repository.NotFoundErrorMessage {
 			err = status.Errorf(codes.NotFound, "Объект не найден")
 			if err != nil {
 				log.Println(err.Error())
 			}
 			return nil, errors.New("объект не найден")
-		} else {
-			err = status.Errorf(codes.Internal, err.Error())
-			if err != nil {
-				log.Println(err.Error())
-			}
-			return nil, err
 		}
+		err = status.Errorf(codes.Internal, "%s", err.Error())
+		if err != nil {
+			log.Println(err.Error())
+		}
+		return nil, err
 	}
 
 	return &orders_api.Success{

@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// TokenAuthMiddleware Middleware для проверки JWT токена
+// TokenAuthMiddleware Middleware для проверки JWT токена.
 func TokenAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Получаем токен из заголовка Authorization

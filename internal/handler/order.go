@@ -1,10 +1,11 @@
 package handler
 
 import (
-	"golang/stockLkBack/internal/model"
 	"log"
 	"net/http"
-	"strconv"
+
+	"golang/stockLkBack/internal/model"
+	"golang/stockLkBack/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,7 +20,7 @@ import (
 // @Failure 400 {object} model.Error "Invalid request"
 // @Failure 500 {object} model.Error "Internal"
 // @Router /api/v1/orders [post]
-// @Security BearerAuth
+// @Security BearerAuth.
 func (h *Handler) CreateOrder(ctx *gin.Context) {
 	var orderReq model.OrderRequestBody
 	if err := ctx.ShouldBindJSON(&orderReq); err != nil {
@@ -45,10 +46,10 @@ func (h *Handler) CreateOrder(ctx *gin.Context) {
 // @Failure 400 {object} model.Error "Invalid request"
 // @Param id path string true "id заказа"
 // @Router /api/v1/orders{id} [put]
-// @Security BearerAuth
+// @Security BearerAuth.
 func (h *Handler) EditOrder(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
-	id, err := strconv.Atoi(idStr)
+	id, err := service.ParseInt32(idStr)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -72,7 +73,7 @@ func (h *Handler) EditOrder(ctx *gin.Context) {
 // @Success 200 {object} []model.Order
 // @Failure 500 {string} string "Internal"
 // @Router /api/v1/orders [get]
-// @Security BearerAuth
+// @Security BearerAuth.
 func (h *Handler) ListOrders(ctx *gin.Context) {
 	orders, err := h.Services.Order.GetAll()
 	if err != nil {
@@ -90,14 +91,14 @@ func (h *Handler) ListOrders(ctx *gin.Context) {
 // @Failure 400 {string} string "Invalid request"
 // @Param id path string true "id заказа"
 // @Router /api/v1/orders/{id} [get]
-// @Security BearerAuth
-func (h *Handler) GetOrderById(ctx *gin.Context) {
+// @Security BearerAuth.
+func (h *Handler) GetOrderByID(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
-	id, err := strconv.Atoi(idStr)
+	id, err := service.ParseInt32(idStr)
 	if err != nil {
 		log.Fatal(err)
 	}
-	order, err := h.Services.Order.GetById(id)
+	order, err := h.Services.Order.GetByID(id)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -113,10 +114,10 @@ func (h *Handler) GetOrderById(ctx *gin.Context) {
 // @Failure 500 {string} string "Internal"
 // @Param id path string true "id заказа"
 // @Router /api/v1/orders/{id} [delete]
-// @Security BearerAuth
+// @Security BearerAuth.
 func (h *Handler) DeleteOrder(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
-	id, err := strconv.Atoi(idStr)
+	id, err := service.ParseInt32(idStr)
 	if err != nil {
 		log.Fatal(err)
 	}

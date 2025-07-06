@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type OrderStatus int
+type OrderStatus int32
 
 const (
 	Active OrderStatus = iota + 1
@@ -12,10 +12,11 @@ const (
 	Deleted
 )
 
+// сделал конкретные int32 и int64 из-за protobuf и линтера (gosec).
 type Order struct {
-	Id               int         `json:"id" bson:"_id,omitempty"`
-	Number           int         `json:"number" bson:"number"`
-	TotalCost        int         `json:"totalCost" bson:"totalCost"`
+	ID               int32       `json:"id" bson:"_id,omitempty"`
+	Number           int32       `json:"number" bson:"number"`
+	TotalCost        int32       `json:"totalCost" bson:"totalCost"`
 	CreatedDate      time.Time   `json:"createdDate" bson:"createdDate"`
 	LastModifiedDate time.Time   `json:"lastModifiedDate" bson:"lastModifiedDate"`
 	Status           OrderStatus `json:"status" bson:"status"`

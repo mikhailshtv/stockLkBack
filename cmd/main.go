@@ -3,16 +3,16 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
+	"strings"
+
+	_ "golang/stockLkBack/docs"
 	"golang/stockLkBack/internal/app"
 	"golang/stockLkBack/internal/config"
 	"golang/stockLkBack/internal/grpc"
 	"golang/stockLkBack/internal/handler"
 	"golang/stockLkBack/internal/repository"
 	"golang/stockLkBack/internal/service"
-	"log"
-	"strings"
-
-	_ "golang/stockLkBack/docs"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
@@ -37,12 +37,12 @@ func main() {
 	appConfig := config.NewConfig()
 	var builder strings.Builder
 	builder.WriteString("mongodb://")
-	builder.WriteString(appConfig.DbUsername)
+	builder.WriteString(appConfig.DBUsername)
 	builder.WriteString(":")
-	builder.WriteString(appConfig.DbPassword)
+	builder.WriteString(appConfig.DBPassword)
 	builder.WriteString("@")
 	builder.WriteString("localhost:27017")
-	// Подключение к MongoDB
+	// Подключение к MongoDB.
 	clientOptions := options.Client().ApplyURI(builder.String())
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
@@ -51,7 +51,7 @@ func main() {
 
 	defer func() {
 		if err := client.Disconnect(ctx); err != nil {
-			log.Fatal(err)
+			log.Println(err.Error())
 		}
 		fmt.Println("Отключено от MongoDB.")
 	}()
@@ -59,12 +59,13 @@ func main() {
 	// Пинг сервера для проверки соединения к mongodb
 	err = client.Ping(ctx, nil)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err.Error())
+		return
 	}
 	fmt.Println("Подключено к MongoDB!")
 
 	// Создание или переключение на базу данных mongodb
-	db := client.Database(appConfig.DbName)
+	db := client.Database(appConfig.DBName)
 
 	// Создание клиента Redis
 	clientRedis := redis.NewClient(&redis.Options{
@@ -90,14 +91,15 @@ func main() {
 
 	newApp, err := app.NewApp(ctx, appConfig, handlers)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err.Error())
+		return
 	}
 	r := gin.Default()
 	url := ginSwagger.URL("http://localhost:8080/api/v1/swagger/doc.json")
 	r.GET("api/v1/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, url))
 	err = newApp.Start(r)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err.Error())
+		return
 	}
-
 }
