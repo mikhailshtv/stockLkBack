@@ -1,6 +1,7 @@
 run:
   tests: true
   modules-download-mode: readonly
+  build-tags: []
 
 linters-settings:
   funlen:
