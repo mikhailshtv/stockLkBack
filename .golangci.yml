@@ -1,5 +1,6 @@
 run:
   tests: true
+  modules-download-mode: readonly
 
 linters-settings:
   funlen:
@@ -21,7 +22,6 @@ linters-settings:
   gofumpt:
     extra-rules: true
     module-path: "golang/stockLkBack"
-
 
 linters:
   disable-all: true
