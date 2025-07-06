@@ -33,7 +33,7 @@ jobs:
           GOMODCACHE: /home/runner/go/pkg/mod
           GOCACHE: /home/runner/.cache/go-build
         with:
-          version: v1.59.0
+          version: v1.59.1
           args: --timeout=5m --out-format=colored-line-number --print-issued-lines --modules-download-mode=vendor -v
           skip-cache: true
           skip-build-cache: true
