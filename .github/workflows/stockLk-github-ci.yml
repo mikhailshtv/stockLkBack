@@ -11,17 +11,14 @@ jobs:
     name: Lint with golangci-lint
     runs-on: ubuntu-latest
     steps:
-      - name: Clear Go caches
-        run: |
-          go clean -cache
-          go clean -modcache
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: '1.24.0'
       - name: Debug Go env
         run: go env
       - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+            go-version: '1.24.0'
+      - name: Install dependencies
+        run: go mod download
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
