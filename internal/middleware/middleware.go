@@ -35,6 +35,7 @@ func TokenAuthMiddleware() gin.HandlerFunc {
 
 		// Если токен валиден, добавляем пользователя в контекст запроса
 		c.Set("login", claims.Login)
+		c.Set("Role", claims.Role)
 
 		c.Next()
 	}

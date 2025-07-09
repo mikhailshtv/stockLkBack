@@ -1,142 +1,286 @@
 package repository
 
 import (
-	"encoding/json"
+	"context"
+	"database/sql"
 	"errors"
-	"io"
-	"log"
-	"os"
-	"slices"
+	"fmt"
 
 	"golang/stockLkBack/internal/model"
 	"golang/stockLkBack/internal/utils/jwtgen"
 
-	"go.mongodb.org/mongo-driver/mongo"
+	"github.com/go-redis/redis/v8"
+	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 )
 
 type UsersRepository struct {
 	Users    []model.User
 	UsersLen int
-	db       *mongo.Database
+	db       *sqlx.DB
+	redis    *redis.Client
 }
 
-func NewUsersRepository(db *mongo.Database) *UsersRepository {
-	return &UsersRepository{db: db}
+func NewUsersRepository(db *sqlx.DB, redis *redis.Client) *UsersRepository {
+	return &UsersRepository{db: db, redis: redis}
 }
 
-func (ur *UsersRepository) Create(userRequest model.UserCreateBody) (*model.User, error) {
-	var user model.User
-	if ur.UsersLen > 0 {
-		lastUser := ur.Users[ur.UsersLen-1]
-		user.ID = lastUser.ID + 1
-	} else {
-		user.ID = 1
+func (ur *UsersRepository) Create(user model.User, ctx context.Context) (*model.User, error) {
+	const query = `
+		INSERT INTO users.users (
+			login, 
+			password_hash, 
+			first_name, 
+			last_name, 
+			email
+		) VALUES (
+			$1, $2, $3, $4, $5
+		)
+		RETURNING *
+	`
+
+	if user.PasswordHash == "" {
+		return nil, fmt.Errorf("хэш пароля отсутствует")
 	}
-	user.FirstName = userRequest.FirstName
-	user.LastName = userRequest.LastName
-	user.Login = userRequest.Login
-	user.Email = userRequest.Email
-	if userRequest.Password == userRequest.PasswordConfirm {
-		err := user.HashPassword(userRequest.Password)
-		if err != nil {
-			return nil, err
+
+	err := ur.db.QueryRowxContext(
+		ctx,
+		query,
+		user.Login,
+		user.PasswordHash,
+		user.FirstName,
+		user.LastName,
+		user.Email,
+	).StructScan(&user)
+
+	if err != nil {
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+			switch pqErr.Constraint {
+			case "users_login_key":
+				return nil, fmt.Errorf("логин %s уже существует", user.Login)
+			case "users_email_key":
+				return nil, fmt.Errorf("email %s уже существует", user.Email)
+			default:
+				return nil, fmt.Errorf("найден дубликат записи: %w", err)
+			}
 		}
-	} else {
-		return nil, errors.New("ошибка подтверждения пароля")
+		return nil, fmt.Errorf("ошибка при создании пользователя: %w", err)
 	}
 
-	ur.Users = append(ur.Users, user)
-	ur.UsersLen = len(ur.Users)
-
-	if err := saveUsersToFile(ur.Users); err != nil {
-		return nil, err
-	}
 	return &user, nil
 }
 
-func (ur *UsersRepository) GetAll() ([]model.User, error) {
-	return ur.Users, nil
+func (ur *UsersRepository) GetAll(ctx context.Context) ([]model.User, error) {
+	const query = "SELECT * FROM users.users ORDER BY id"
+
+	var users []model.User
+	err := ur.db.SelectContext(ctx, &users, query)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при получении списка пользователей: %w", err)
+	}
+
+	return users, nil
+
 }
 
-func (ur *UsersRepository) GetByID(id int) (*model.User, error) {
-	idx := slices.IndexFunc(ur.Users, func(user model.User) bool { return user.ID == id })
-	if idx == -1 {
-		return nil, errors.New(NotFoundErrorMessage)
+func (ur *UsersRepository) GetByID(id int, ctx context.Context) (*model.User, error) {
+	const query = `
+        SELECT 
+            id,
+            login,
+            first_name,
+            last_name,
+            email,
+            role
+        FROM users.users
+        WHERE id = $1
+        LIMIT 1
+    `
+
+	var user model.User
+	err := ur.db.QueryRowxContext(ctx, query, id).StructScan(&user)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("пользователь с ID %d не найден", id)
+		}
+		return nil, fmt.Errorf("ошибка при получении пользователя: %w", err)
 	}
-	return &ur.Users[idx], nil
+
+	return &user, nil
 }
 
-func (ur *UsersRepository) Delete(id int) error {
-	ur.Users = slices.DeleteFunc(ur.Users, func(user model.User) bool { return user.ID == id })
-	ur.UsersLen = len(ur.Users)
-	if err := saveUsersToFile(ur.Users); err != nil {
-		return err
+func (ur *UsersRepository) Delete(id int, ctx context.Context) (*model.User, error) {
+	const query = `
+        WITH deleted AS (
+            DELETE FROM users.users 
+            WHERE id = $1
+            RETURNING *
+        )
+        SELECT * FROM deleted
+	`
+
+	deletedUser := model.User{}
+	err := ur.db.QueryRowxContext(ctx, query, id).StructScan(&deletedUser)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("пользователь с ID %d не найден: %w", id, err)
+		}
+		return nil, fmt.Errorf("ошибка удаления пользователя: %w", err)
 	}
-	return nil
+
+	return &deletedUser, nil
 }
 
-func (ur *UsersRepository) Update(id int, userReq model.UserEditBody) (*model.User, error) {
-	idx := slices.IndexFunc(ur.Users, func(user model.User) bool { return user.ID == id })
-	if idx == -1 {
-		return nil, errors.New(NotFoundErrorMessage)
+func (ur *UsersRepository) Update(id int, userReq model.UserEditBody, ctx context.Context) (*model.User, error) {
+	existingUser, err := ur.GetByID(id, ctx)
+	if err != nil {
+		return nil, fmt.Errorf("пользователь не найден: %w", err)
 	}
+
 	if userReq.FirstName != "" {
-		ur.Users[idx].FirstName = userReq.FirstName
+		existingUser.FirstName = userReq.FirstName
 	}
 	if userReq.LastName != "" {
-		ur.Users[idx].LastName = userReq.LastName
+		existingUser.LastName = userReq.LastName
 	}
 	if userReq.Email != "" {
-		ur.Users[idx].Email = userReq.Email
+		existingUser.Email = userReq.Email
 	}
 
-	if err := saveUsersToFile(ur.Users); err != nil {
-		return nil, err
+	const query = `
+        UPDATE users.users SET
+            first_name = $1,
+            last_name = $2,
+            email = $3
+        WHERE id = $4
+        RETURNING *
+    `
+
+	updatedUser := model.User{}
+	err = ur.db.QueryRowxContext(
+		ctx,
+		query,
+		existingUser.FirstName,
+		existingUser.LastName,
+		existingUser.Email,
+		id,
+	).StructScan(&updatedUser)
+
+	if err != nil {
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) {
+			if pqErr.Code == "23505" && pqErr.Constraint == "users_email_key" {
+				return nil, fmt.Errorf("email %s уже используется другим пользователем", userReq.Email)
+			}
+		}
+		return nil, fmt.Errorf("ошибка при обновлении пользователя: %w", err)
 	}
-	return &ur.Users[idx], nil
+
+	return &updatedUser, nil
 }
 
-func (ur *UsersRepository) Login(userReq model.LoginRequest) (*model.TokenSuccess, error) {
-	idx := slices.IndexFunc(ur.Users, func(user model.User) bool { return user.Login == userReq.Login })
-	if idx == -1 {
-		return nil, errors.New("логин или пароль пользователя недействителен")
+func (ur *UsersRepository) Login(userReq model.LoginRequest, ctx context.Context) (*model.TokenSuccess, error) {
+	const query = `
+        SELECT 
+            login,
+            password_hash,
+            email,
+            role
+        FROM users.users
+        WHERE login = $1 OR email = $1
+        LIMIT 1
+    `
+
+	var user model.User
+	err := ur.db.QueryRowxContext(ctx, query, userReq.Login).StructScan(&user)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("логин или пароль пользователя недействителен")
+		}
+		return nil, fmt.Errorf("ошибка запроса к базе: %w", err)
 	}
-	foundUser := ur.Users[idx]
-	if foundUser.CheckUserPassword(userReq.Password) {
-		token, err := jwtgen.GenerateToken(userReq.Login, foundUser.Role)
+	if user.CheckUserPassword(userReq.Password) {
+		token, err := jwtgen.GenerateToken(userReq.Login, user.Role)
 		if err != nil {
 			return nil, errors.New("ошибка генерации токена")
 		}
 		return &model.TokenSuccess{
-			Message: "Login successful",
+			Message: "аутентификация успешна",
 			Token:   token,
 		}, nil
 	}
 	return nil, errors.New("логин или пароль пользователя недействителен")
 }
 
-func (ur *UsersRepository) ChangeUserRole(id int, userRoleReq model.UserRoleBody) (*model.User, error) {
-	idx := slices.IndexFunc(ur.Users, func(user model.User) bool { return user.ID == id })
-	if idx == -1 {
-		return nil, errors.New("пользователь не найден")
+func (ur *UsersRepository) ChangeUserRole(id int, userRoleReq model.UserRoleBody, ctx context.Context) (*model.User, error) {
+	if !userRoleReq.Role.Valid() {
+		return nil, fmt.Errorf("недопустимая роль: %s", userRoleReq.Role)
 	}
-	foundUser := ur.Users[idx]
-	foundUser.Role = userRoleReq.Role
-	return &foundUser, nil
+	const query = `
+		UPDATE users.users SET
+				role = $1
+		WHERE id = $2
+		RETURNING *
+	`
+	var updatedUser model.User
+	err := ur.db.QueryRowxContext(ctx, query, userRoleReq.Role, id).StructScan(&updatedUser)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("пользователь с ID %d не найден", id)
+		}
+		return nil, fmt.Errorf("ошибка при обновлении роли: %w", err)
+	}
+	return &updatedUser, nil
 }
 
 func (ur *UsersRepository) ChangePassword(
 	id int,
 	changePassworReq model.UserChangePasswordBody,
+	ctx context.Context,
 ) (*model.Success, error) {
-	idx := slices.IndexFunc(ur.Users, func(user model.User) bool { return user.ID == id })
-	if idx == -1 {
-		return nil, errors.New("пользователь не найден")
+	if changePassworReq.Password != changePassworReq.PasswordConfirm {
+		return nil, fmt.Errorf("пароли не совпадают")
 	}
-	foundUser := ur.Users[idx]
-	err := foundUser.HashPassword(changePassworReq.Password)
+
+	var currentHash string
+	const passwordHashQuery = "SELECT password_hash FROM users.users WHERE id = $1"
+	err := ur.db.QueryRowContext(ctx, passwordHashQuery, id).Scan(&currentHash)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("пользователь не найден")
+		}
+		return nil, fmt.Errorf("ошибка при получении пользователя: %w", err)
+	}
+
+	if changePassworReq.OldPassword == "" {
+		return nil, fmt.Errorf("необходимо указать текущий пароль")
+	}
+	var user model.User
+	user.PasswordHash = currentHash
+	res := user.CheckUserPassword(changePassworReq.OldPassword)
+	fmt.Printf("%v", res)
+	if !res {
+		return nil, fmt.Errorf("неверный текущий пароль")
+	}
+
+	err = user.HashPassword(changePassworReq.Password)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при хешировании пароля: %w", err)
+	}
+	const query = `UPDATE users.users SET password_hash = $1 WHERE id = $2`
+	result, err := ur.db.ExecContext(ctx, query, user.PasswordHash, id)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при изменении пароля: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при проверке изменения пароля: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return nil, fmt.Errorf("пользователь не найден")
 	}
 	return &model.Success{
 		Status:  "Success",
@@ -144,83 +288,6 @@ func (ur *UsersRepository) ChangePassword(
 	}, nil
 }
 
-func (ur *UsersRepository) RestoreUsersFromFile(path string) {
-	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
-		return
-	}
-	file, err := os.Open(path)
-	if err != nil {
-		log.Printf("Ошибка открытия файла: %v\n", err.Error())
-		return
-	}
-	defer file.Close()
-	data, err := io.ReadAll(file)
-	if err != nil {
-		log.Printf("Ошибка чтения из файла: %v\n", err.Error())
-		return
-	}
-	if len(data) == 0 {
-		return
-	}
-
-	users, err := UnmarshalingUserEntitiesJSON(data)
-	if err != nil {
-		log.Printf("Ошибка десериализации: %v\n", err.Error())
-		return
-	}
-	ur.Users = users
-}
-
-func saveUsersToFile(users []model.User) error {
-	outputPath := "./assets"
-	if _, err := os.Stat(outputPath); errors.Is(err, os.ErrNotExist) {
-		err := os.Mkdir(outputPath, os.ModePerm)
-		if err != nil {
-			log.Printf("Ошибка создания каталога: %v\n", err.Error())
-			return err
-		}
-	}
-	path := "./assets/users.json"
-	json, err := json.Marshal(users)
-	if err != nil {
-		log.Printf("Ошибка конвертирования в json: %v\n", err.Error())
-		return err
-	}
-	if err := os.WriteFile(path, json, 0o600); err != nil {
-		log.Printf("Ошибка записи в файл: %v\n", err.Error())
-		return err
-	}
-	return nil
-}
-
-func UnmarshalingUserEntitiesJSON(data []byte) ([]model.User, error) {
-	var temp []struct {
-		ID           int            `json:"id"`
-		Login        string         `json:"login"`
-		PasswordHash string         `json:"password"`
-		FirstName    string         `json:"firstName"`
-		LastName     string         `json:"lastName"`
-		Email        string         `json:"email"`
-		Role         model.UserRole `json:"role"`
-	}
-
-	if err := json.Unmarshal(data, &temp); err != nil {
-		return nil, err
-	}
-
-	users := make([]model.User, 0, 10)
-
-	for _, v := range temp {
-		currentUser := model.User{
-			ID:        v.ID,
-			Login:     v.Login,
-			FirstName: v.FirstName,
-			LastName:  v.LastName,
-			Email:     v.Email,
-			Role:      v.Role,
-		}
-		currentUser.SetPasswordHash(v.PasswordHash)
-		users = append(users, currentUser)
-	}
-	return users, nil
+func (or *UsersRepository) WriteLog(result any, operation, status, tableName string) (int64, error) {
+	return WriteLog(result, operation, status, tableName, or.redis)
 }

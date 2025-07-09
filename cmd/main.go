@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strings"
+	"os"
 
 	_ "golang/stockLkBack/docs"
 	"golang/stockLkBack/internal/app"
@@ -16,11 +16,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
+	"github.com/joho/godotenv"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+// swag init -g cmd/main.go команды для генерации сваггера.
+// http://localhost:8080/swagger/index.html посмотреть сваггер.
 
 // @title Сервис управления складом
 // @version 1
@@ -35,37 +37,37 @@ import (
 func main() {
 	ctx := context.Background()
 	appConfig := config.NewConfig()
-	var builder strings.Builder
-	builder.WriteString("mongodb://")
-	builder.WriteString(appConfig.DBUsername)
-	builder.WriteString(":")
-	builder.WriteString(appConfig.DBPassword)
-	builder.WriteString("@")
-	builder.WriteString("localhost:27017")
-	// Подключение к MongoDB.
-	clientOptions := options.Client().ApplyURI(builder.String())
-	client, err := mongo.Connect(ctx, clientOptions)
+
+	err := godotenv.Load()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Ошибка при загрузке .env файла: %v", err)
 	}
 
-	defer func() {
-		if err := client.Disconnect(ctx); err != nil {
-			log.Println(err.Error())
-		}
-		fmt.Println("Отключено от MongoDB.")
-	}()
+	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
+	dbUser := os.Getenv("DB_USER")
+	dbPass := os.Getenv("DB_PASSWORD")
+	dbName := os.Getenv("DB_NAME")
 
-	// Пинг сервера для проверки соединения к mongodb
-	err = client.Ping(ctx, nil)
+	sqlConfig := repository.SqlConfig{
+		Host:           dbHost,
+		Port:           dbPort,
+		User:           dbUser,
+		Password:       dbPass,
+		Database:       dbName,
+		SSLMode:        "disable",
+		MaxConnections: 10,
+		Timeout:        5,
+	}
+
+	dsn := sqlConfig.CreateDsn()
+
+	// Создание базы данных sql
+	db, err := repository.NewSqlxConn(ctx, dsn)
 	if err != nil {
-		log.Println(err.Error())
+		fmt.Println("Ошибка подключения к postgreSQL:", err)
 		return
 	}
-	fmt.Println("Подключено к MongoDB!")
-
-	// Создание или переключение на базу данных mongodb
-	db := client.Database(appConfig.DBName)
 
 	// Создание клиента Redis
 	clientRedis := redis.NewClient(&redis.Options{
@@ -82,9 +84,7 @@ func main() {
 	}
 
 	repo := repository.NewRepository(db, clientRedis)
-	repo.Product.RestoreProductsFromFile("./assets/products.json")
-	repo.User.RestoreUsersFromFile("./assets/users.json")
-	services := service.NewService(repo)
+	services := service.NewService(repo, ctx)
 	handlers := handler.NewHandler(services)
 
 	go grpc.StartServer(handlers)

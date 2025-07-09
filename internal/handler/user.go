@@ -18,8 +18,8 @@ import (
 // @Param user body model.UserCreateBody true "Объект пользователя"
 // @Success 200 {object} model.User
 // @Failure 400 {object} model.Error "Invalid request"
-// @Router /api/v1/users [post]
-// @Security BearerAuth.
+// @Failure 500 {object} model.Error "Internal"
+// @Router /api/v1/users [post].
 func (h *Handler) CreateUser(ctx *gin.Context) {
 	var userReq model.UserCreateBody
 	if err := ctx.ShouldBindJSON(&userReq); err != nil {
@@ -28,7 +28,7 @@ func (h *Handler) CreateUser(ctx *gin.Context) {
 	}
 	user, err := h.Services.User.Create(userReq)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	ctx.JSON(http.StatusOK, user)
@@ -114,6 +114,11 @@ func (h *Handler) EditUser(ctx *gin.Context) {
 // @Router /api/v1/users/{id}/role [patch]
 // @Security BearerAuth.
 func (h *Handler) ChangeUserRole(ctx *gin.Context) {
+	isEmployee := ctx.GetString(userRoleKey) == "employee"
+	if !isEmployee {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "недостаточно прав для выполнения операции"})
+		return
+	}
 	idStr := ctx.Params.ByName("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -124,7 +129,7 @@ func (h *Handler) ChangeUserRole(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if userRole.Role == 0 || userRole.Role > 2 {
+	if !userRole.Role.Valid() {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Недопустимое тело запроса"})
 		return
 	}
@@ -225,6 +230,11 @@ func (h *Handler) GetUserByID(ctx *gin.Context) {
 // @Router /api/v1/users/{id} [delete]
 // @Security BearerAuth.
 func (h *Handler) DeleteUser(ctx *gin.Context) {
+	isEmployee := ctx.GetString(userRoleKey) == "employee"
+	if !isEmployee {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "недостаточно прав для выполнения операции"})
+		return
+	}
 	idStr := ctx.Params.ByName("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {

@@ -1,27 +1,25 @@
 package model
 
 import (
-	"encoding/json"
-
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
-type UserRole int
+type UserRole string
 
 const (
-	Client UserRole = iota + 1
-	Employee
+	RoleClient   UserRole = "client"
+	RoleEmployee UserRole = "employee"
 )
 
 type User struct {
-	ID           int      `json:"id"`
-	Login        string   `json:"login" binding:"required"`
-	passwordHash string   `json:"-"`
-	FirstName    string   `json:"firstName" binding:"required"`
-	LastName     string   `json:"lastName" binding:"required"`
-	Email        string   `json:"email" binding:"required,email"`
-	Role         UserRole `json:"role"`
+	ID           int      `json:"id" db:"id"`
+	Login        string   `json:"login" binding:"required" db:"login"`
+	PasswordHash string   `json:"-" db:"password_hash"`
+	FirstName    string   `json:"firstName" binding:"required" db:"first_name"`
+	LastName     string   `json:"lastName" binding:"required" db:"last_name"`
+	Email        string   `json:"email" binding:"required,email" db:"email"`
+	Role         UserRole `json:"role" db:"role"`
 }
 
 type UserProxy struct {
@@ -57,6 +55,7 @@ type UserRoleBody struct {
 type UserChangePasswordBody struct {
 	Password        string `json:"password" binding:"required"`
 	PasswordConfirm string `json:"passwordConfirm" binding:"required"`
+	OldPassword     string `json:"oldPassword" binding:"required"`
 }
 
 type LoginRequest struct {
@@ -72,27 +71,21 @@ type Claims struct {
 }
 
 func (user *User) CheckUserPassword(password string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(user.passwordHash), []byte(password))
+	err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
 	return err == nil
 }
 
 func (user *User) HashPassword(password string) error {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 12)
-	user.passwordHash = string(bytes)
+	user.PasswordHash = string(bytes)
 	return err
 }
 
-func (user *User) PasswordHash() string {
-	return user.passwordHash
-}
-
-func (user *User) SetPasswordHash(passwordHash string) {
-	user.passwordHash = passwordHash
-}
-
-func (userProxy *UserProxy) UnmarshalJSONToUserProxy(data []byte) (*UserProxy, error) {
-	if err := json.Unmarshal(data, &userProxy); err != nil {
-		return nil, err
+func (r UserRole) Valid() bool {
+	switch r {
+	case RoleClient, RoleEmployee:
+		return true
+	default:
+		return false
 	}
-	return userProxy, nil
 }

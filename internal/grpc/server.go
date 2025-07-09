@@ -138,7 +138,7 @@ func (s *server) CreateOrder(
 		TotalCost:        order.TotalCost,
 		CreatedDate:      timestamppb.New(order.CreatedDate),
 		LastModifiedDate: timestamppb.New(order.LastModifiedDate),
-		Status:           int32(order.Status),
+		Status:           &orders_api.OrderStatus{Key: order.Status.Key, DisplayName: order.Status.DisplayName},
 		Products:         products,
 	}, nil
 }
@@ -197,7 +197,7 @@ func (s *server) EditOrder(
 		TotalCost:        order.TotalCost,
 		CreatedDate:      timestamppb.New(order.CreatedDate),
 		LastModifiedDate: timestamppb.New(order.LastModifiedDate),
-		Status:           int32(order.Status),
+		Status:           &orders_api.OrderStatus{Key: order.Status.Key, DisplayName: order.Status.DisplayName},
 		Products:         products,
 	}, nil
 }

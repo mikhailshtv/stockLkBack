@@ -37,7 +37,7 @@ func TestHandler_CreateOrder(t *testing.T) {
 						"quantity":215,
 						"name":"Cheese",
 						"purchasePrice":24000,
-						"salePrice":74000
+						"sellPrice":74000
 					}
 				]
 			}`,
@@ -49,7 +49,7 @@ func TestHandler_CreateOrder(t *testing.T) {
 						Quantity:      215,
 						Name:          "Cheese",
 						PurchasePrice: 24000,
-						SalePrice:     74000,
+						SellPrice:     74000,
 					},
 				},
 			},
@@ -61,7 +61,7 @@ func TestHandler_CreateOrder(t *testing.T) {
 						TotalCost:        74000,
 						CreatedDate:      time.Date(2025, time.May, 25, 12, 17, 16, 550631000, time.UTC),
 						LastModifiedDate: time.Date(2025, time.May, 25, 12, 17, 16, 550631000, time.UTC),
-						Status:           1,
+						Status:           model.StatusActive,
 						Products: []model.Product{
 							{
 								ID:            1,
@@ -69,7 +69,7 @@ func TestHandler_CreateOrder(t *testing.T) {
 								Quantity:      215,
 								Name:          "Cheese",
 								PurchasePrice: 24000,
-								SalePrice:     74000,
+								SellPrice:     74000,
 							},
 						},
 					}, nil,
@@ -90,7 +90,7 @@ func TestHandler_CreateOrder(t *testing.T) {
 						"quantity":215,
 						"name":"Cheese",
 						"purchasePrice":24000,
-						"salePrice":74000
+						"sellPrice":74000
 					}
 				]
 			}`,
@@ -104,7 +104,7 @@ func TestHandler_CreateOrder(t *testing.T) {
 					"quantity":215,
 					"name":"Cheese",
 					"purchasePrice":24000,
-					"salePrice":74000
+					"sellPrice":74000
 				}`,
 			mockBehavior:         func(_ *mock_service.MockOrder, _ model.OrderRequestBody) {},
 			expectedStatusCode:   400,
@@ -121,7 +121,7 @@ func TestHandler_CreateOrder(t *testing.T) {
 							"quantity":215,
 							"name":"Cheese",
 							"purchasePrice":24000,
-							"salePrice":74000
+							"sellPrice":74000
 						}
 					]
 				}`,
@@ -133,7 +133,7 @@ func TestHandler_CreateOrder(t *testing.T) {
 						Quantity:      215,
 						Name:          "Cheese",
 						PurchasePrice: 24000,
-						SalePrice:     74000,
+						SellPrice:     74000,
 					},
 				},
 			},
@@ -184,7 +184,7 @@ func TestHandler_ListOrders(t *testing.T) {
 							TotalCost:        74000,
 							CreatedDate:      time.Date(2025, time.May, 25, 12, 17, 16, 550631000, time.UTC),
 							LastModifiedDate: time.Date(2025, time.May, 25, 12, 17, 16, 550631000, time.UTC),
-							Status:           1,
+							Status:           model.StatusActive,
 							Products: []model.Product{
 								{
 									ID:            1,
@@ -192,7 +192,7 @@ func TestHandler_ListOrders(t *testing.T) {
 									Quantity:      215,
 									Name:          "Cheese",
 									PurchasePrice: 24000,
-									SalePrice:     74000,
+									SellPrice:     74000,
 								},
 							},
 						},
@@ -215,7 +215,7 @@ func TestHandler_ListOrders(t *testing.T) {
 							"quantity":215,
 							"name":"Cheese",
 							"purchasePrice":24000,
-							"salePrice":74000
+							"sellPrice":74000
 						}
 					]
 				}
@@ -280,7 +280,7 @@ func TestHandler_EditOrders(t *testing.T) {
 							"quantity":215,
 							"name":"Cheese",
 							"purchasePrice":24000,
-							"salePrice":74000
+							"sellPrice":74000
 						}
 					]
 				}`,
@@ -292,7 +292,7 @@ func TestHandler_EditOrders(t *testing.T) {
 						Quantity:      215,
 						Name:          "Cheese",
 						PurchasePrice: 24000,
-						SalePrice:     74000,
+						SellPrice:     74000,
 					},
 				},
 			},
@@ -304,7 +304,7 @@ func TestHandler_EditOrders(t *testing.T) {
 						TotalCost:        74000,
 						CreatedDate:      time.Date(2025, time.May, 25, 12, 17, 16, 550631000, time.UTC),
 						LastModifiedDate: time.Date(2025, time.May, 25, 12, 17, 16, 550631000, time.UTC),
-						Status:           1,
+						Status:           model.StatusActive,
 						Products: []model.Product{
 							{
 								ID:            1,
@@ -312,7 +312,7 @@ func TestHandler_EditOrders(t *testing.T) {
 								Quantity:      215,
 								Name:          "Cheese",
 								PurchasePrice: 24000,
-								SalePrice:     74000,
+								SellPrice:     74000,
 							},
 						},
 					}, nil,
@@ -334,7 +334,7 @@ func TestHandler_EditOrders(t *testing.T) {
 							"quantity":215,
 							"name":"Cheese",
 							"purchasePrice":24000,
-							"salePrice":74000
+							"sellPrice":74000
 						}
 					]
 				}`,
@@ -385,7 +385,7 @@ func TestHandler_GetOrderById(t *testing.T) {
 						TotalCost:        74000,
 						CreatedDate:      time.Date(2025, time.May, 25, 12, 17, 16, 550631000, time.UTC),
 						LastModifiedDate: time.Date(2025, time.May, 25, 12, 17, 16, 550631000, time.UTC),
-						Status:           1,
+						Status:           model.StatusActive,
 						Products: []model.Product{
 							{
 								ID:            1,
@@ -393,7 +393,7 @@ func TestHandler_GetOrderById(t *testing.T) {
 								Quantity:      215,
 								Name:          "Cheese",
 								PurchasePrice: 24000,
-								SalePrice:     74000,
+								SellPrice:     74000,
 							},
 						},
 					}, nil,
@@ -415,7 +415,7 @@ func TestHandler_GetOrderById(t *testing.T) {
 							"quantity":215,
 							"name":"Cheese",
 							"purchasePrice":24000,
-							"salePrice":74000
+							"sellPrice":74000
 						}
 					]
 				}`,

@@ -8,8 +8,9 @@ import (
 )
 
 const (
-	logErrorStatus   = "Error"
-	logSuccessStatus = "Success"
+	logErrorStatus     = "Error"
+	logSuccessStatus   = "Success"
+	logOrdersTableName = "logOrder"
 )
 
 type OrdersService struct {
@@ -25,14 +26,14 @@ func (s *OrdersService) Create(order model.OrderRequestBody) (*model.Order, erro
 	var result any
 	var status string
 	if err != nil {
-		result = err
+		result = model.Error{Error: err.Error()}
 		status = logErrorStatus
 	} else {
 		result = createdOrder
 		status = logSuccessStatus
 	}
 
-	_, logErr := s.repo.WriteLog(result, "Create", status)
+	_, logErr := s.repo.WriteLog(result, "Create", status, logOrdersTableName)
 	if logErr != nil {
 		log.Println(logErr.Error())
 	}
@@ -52,14 +53,14 @@ func (s *OrdersService) Delete(id int32) error {
 	var result any
 	var status string
 	if err != nil {
-		result = err
+		result = model.Error{Error: err.Error()}
 		status = logErrorStatus
 	} else {
 		result = delitedOrder
 		status = logSuccessStatus
 	}
 
-	_, logErr := s.repo.WriteLog(result, "Delete", status)
+	_, logErr := s.repo.WriteLog(result, "Delete", status, logOrdersTableName)
 	if logErr != nil {
 		log.Println(logErr.Error())
 	}
@@ -71,14 +72,14 @@ func (s *OrdersService) Update(id int32, order model.OrderRequestBody) (*model.O
 	var result any
 	var status string
 	if err != nil {
-		result = err
+		result = model.Error{Error: err.Error()}
 		status = logErrorStatus
 	} else {
 		result = updatedOrder
 		status = logSuccessStatus
 	}
 
-	_, logErr := s.repo.WriteLog(result, "Update", status)
+	_, logErr := s.repo.WriteLog(result, "Update", status, logOrdersTableName)
 	if logErr != nil {
 		log.Println(logErr.Error())
 	}

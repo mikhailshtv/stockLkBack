@@ -43,6 +43,18 @@
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
+                    },
+                    "401": {
+                        "description": "Anauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
                     }
                 }
             }
@@ -51,7 +63,7 @@
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "produces": [
@@ -71,8 +83,8 @@
                             }
                         }
                     },
-                    "400": {
-                        "description": "Invalid request",
+                    "500": {
+                        "description": "Internal",
                         "schema": {
                             "type": "string"
                         }
@@ -82,7 +94,7 @@
             "post": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "consumes": [
@@ -118,6 +130,12 @@
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
+                    },
+                    "500": {
+                        "description": "Internal",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
                     }
                 }
             }
@@ -126,7 +144,7 @@
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "produces": [
@@ -163,7 +181,7 @@
             "delete": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "produces": [
@@ -189,8 +207,8 @@
                             "$ref": "#/definitions/model.Success"
                         }
                     },
-                    "400": {
-                        "description": "Invalid request",
+                    "500": {
+                        "description": "Internal",
                         "schema": {
                             "type": "string"
                         }
@@ -202,7 +220,7 @@
             "put": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "consumes": [
@@ -253,7 +271,7 @@
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "produces": [
@@ -284,7 +302,7 @@
             "post": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "consumes": [
@@ -328,7 +346,7 @@
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "produces": [
@@ -365,7 +383,7 @@
             "put": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "consumes": [
@@ -414,7 +432,7 @@
             "delete": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "produces": [
@@ -453,7 +471,7 @@
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "produces": [
@@ -482,11 +500,6 @@
                 }
             },
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "consumes": [
                     "application/json"
                 ],
@@ -528,7 +541,7 @@
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "produces": [
@@ -565,7 +578,7 @@
             "put": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "consumes": [
@@ -614,7 +627,7 @@
             "delete": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "produces": [
@@ -653,7 +666,7 @@
             "patch": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "consumes": [
@@ -704,7 +717,7 @@
             "patch": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "consumes": [
@@ -819,17 +832,15 @@
             }
         },
         "model.OrderStatus": {
-            "type": "integer",
-            "enum": [
-                1,
-                2,
-                3
-            ],
-            "x-enum-varnames": [
-                "Active",
-                "Executed",
-                "Deleted"
-            ]
+            "type": "object",
+            "properties": {
+                "displayName": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
+                }
+            }
         },
         "model.Product": {
             "type": "object",
@@ -849,7 +860,7 @@
                 "quantity": {
                     "type": "integer"
                 },
-                "salePrice": {
+                "sellPrice": {
                     "type": "integer"
                 }
             }
@@ -869,7 +880,7 @@
                 "quantity": {
                     "type": "integer"
                 },
-                "salePrice": {
+                "sellPrice": {
                     "type": "integer"
                 }
             }
@@ -978,14 +989,14 @@
             }
         },
         "model.UserRole": {
-            "type": "integer",
+            "type": "string",
             "enum": [
-                1,
-                2
+                "client",
+                "employee"
             ],
             "x-enum-varnames": [
-                "Client",
-                "Employee"
+                "RoleClient",
+                "RoleEmployee"
             ]
         },
         "model.UserRoleBody": {

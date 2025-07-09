@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"strconv"
 
 	"golang/stockLkBack/internal/model"
@@ -18,11 +19,11 @@ type Order interface {
 }
 
 type Product interface {
-	Create(product model.ProductRequestBody) (*model.Product, error)
+	Create(product model.Product) (*model.Product, error)
 	GetAll() ([]model.Product, error)
 	GetByID(id int32) (*model.Product, error)
 	Delete(id int32) error
-	Update(id int32, product model.ProductRequestBody) (*model.Product, error)
+	Update(id int32, product model.Product) (*model.Product, error)
 }
 
 type User interface {
@@ -42,11 +43,11 @@ type Service struct {
 	User
 }
 
-func NewService(repo *repository.Repository) *Service {
+func NewService(repo *repository.Repository, ctx context.Context) *Service {
 	return &Service{
 		Order:   NewOrdersService(repo.Order),
-		Product: NewProductsService(repo.Product),
-		User:    NewUsersService(repo.User),
+		Product: NewProductsService(repo.Product, ctx),
+		User:    NewUsersService(repo.User, ctx),
 	}
 }
 

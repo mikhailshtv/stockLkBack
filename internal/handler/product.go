@@ -21,7 +21,12 @@ import (
 // @Router /api/v1/products [post]
 // @Security BearerAuth.
 func (h *Handler) CreateProduct(ctx *gin.Context) {
-	var productReq model.ProductRequestBody
+	isEmployee := ctx.GetString(userRoleKey) == "employee"
+	if !isEmployee {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "недостаточно прав для выполнения операции"})
+		return
+	}
+	var productReq model.Product
 	if err := ctx.ShouldBindJSON(&productReq); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -47,12 +52,17 @@ func (h *Handler) CreateProduct(ctx *gin.Context) {
 // @Router /api/v1/products/{id} [put]
 // @Security BearerAuth.
 func (h *Handler) EditProduct(ctx *gin.Context) {
+	isEmployee := ctx.GetString(userRoleKey) == "employee"
+	if !isEmployee {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "недостаточно прав для выполнения операции"})
+		return
+	}
 	idStr := ctx.Params.ByName("id")
 	id, err := service.ParseInt32(idStr)
 	if err != nil {
 		log.Fatal(err)
 	}
-	var productReq model.ProductRequestBody
+	var productReq model.Product
 	if err := ctx.ShouldBindJSON(&productReq); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -115,6 +125,11 @@ func (h *Handler) GetProductByID(ctx *gin.Context) {
 // @Router /api/v1/products/{id} [delete]
 // @Security BearerAuth.
 func (h *Handler) DeleteProduct(ctx *gin.Context) {
+	isEmployee := ctx.GetString(userRoleKey) == "employee"
+	if !isEmployee {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "недостаточно прав для выполнения операции"})
+		return
+	}
 	idStr := ctx.Params.ByName("id")
 	id, err := service.ParseInt32(idStr)
 	if err != nil {

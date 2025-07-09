@@ -42,15 +42,12 @@ definitions:
     - products
     type: object
   model.OrderStatus:
-    enum:
-    - 1
-    - 2
-    - 3
-    type: integer
-    x-enum-varnames:
-    - Active
-    - Executed
-    - Deleted
+    properties:
+      displayName:
+        type: string
+      key:
+        type: string
+    type: object
   model.Product:
     properties:
       code:
@@ -63,7 +60,7 @@ definitions:
         type: integer
       quantity:
         type: integer
-      salePrice:
+      sellPrice:
         type: integer
     type: object
   model.ProductRequestBody:
@@ -76,7 +73,7 @@ definitions:
         type: integer
       quantity:
         type: integer
-      salePrice:
+      sellPrice:
         type: integer
     type: object
   model.Success:
@@ -149,12 +146,12 @@ definitions:
     type: object
   model.UserRole:
     enum:
-    - 1
-    - 2
-    type: integer
+    - client
+    - employee
+    type: string
     x-enum-varnames:
-    - Client
-    - Employee
+    - RoleClient
+    - RoleEmployee
   model.UserRoleBody:
     properties:
       role:
@@ -191,6 +188,14 @@ paths:
           description: Invalid request
           schema:
             $ref: '#/definitions/model.Error'
+        "401":
+          description: Anauthorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.Error'
       summary: Аутенификация пользователя
       tags:
       - Login
@@ -205,12 +210,12 @@ paths:
             items:
               $ref: '#/definitions/model.Order'
             type: array
-        "400":
-          description: Invalid request
+        "500":
+          description: Internal
           schema:
             type: string
       security:
-      - BearerAuth: []
+      - BearerAuth.: []
       summary: Список заказов
       tags:
       - Orders
@@ -235,8 +240,12 @@ paths:
           description: Invalid request
           schema:
             $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal
+          schema:
+            $ref: '#/definitions/model.Error'
       security:
-      - BearerAuth: []
+      - BearerAuth.: []
       summary: Создание заказа
       tags:
       - Orders
@@ -255,12 +264,12 @@ paths:
           description: Объект успешно удален
           schema:
             $ref: '#/definitions/model.Success'
-        "400":
-          description: Invalid request
+        "500":
+          description: Internal
           schema:
             type: string
       security:
-      - BearerAuth: []
+      - BearerAuth.: []
       summary: Удаление заказа
       tags:
       - Orders
@@ -283,7 +292,7 @@ paths:
           schema:
             type: string
       security:
-      - BearerAuth: []
+      - BearerAuth.: []
       summary: Получение заказа по id
       tags:
       - Orders
@@ -315,7 +324,7 @@ paths:
           schema:
             $ref: '#/definitions/model.Error'
       security:
-      - BearerAuth: []
+      - BearerAuth.: []
       summary: Редактирование заказа
       tags:
       - Orders
@@ -335,7 +344,7 @@ paths:
           schema:
             type: string
       security:
-      - BearerAuth: []
+      - BearerAuth.: []
       summary: Список продуктов
       tags:
       - Products
@@ -361,7 +370,7 @@ paths:
           schema:
             $ref: '#/definitions/model.Error'
       security:
-      - BearerAuth: []
+      - BearerAuth.: []
       summary: Создание продукта
       tags:
       - Products
@@ -385,7 +394,7 @@ paths:
           schema:
             type: string
       security:
-      - BearerAuth: []
+      - BearerAuth.: []
       summary: Удаление продукта
       tags:
       - Products
@@ -408,7 +417,7 @@ paths:
           schema:
             type: string
       security:
-      - BearerAuth: []
+      - BearerAuth.: []
       summary: Получение продукта по id
       tags:
       - Products
@@ -439,7 +448,7 @@ paths:
           schema:
             $ref: '#/definitions/model.Error'
       security:
-      - BearerAuth: []
+      - BearerAuth.: []
       summary: Редактирование продукта
       tags:
       - Products
@@ -459,7 +468,7 @@ paths:
           schema:
             type: string
       security:
-      - BearerAuth: []
+      - BearerAuth.: []
       summary: Список пользователей
       tags:
       - Users
@@ -484,8 +493,6 @@ paths:
           description: Invalid request
           schema:
             $ref: '#/definitions/model.Error'
-      security:
-      - BearerAuth: []
       summary: Создание/регистрация пользователя
       tags:
       - Users
@@ -509,7 +516,7 @@ paths:
           schema:
             type: string
       security:
-      - BearerAuth: []
+      - BearerAuth.: []
       summary: Удаление пользователя
       tags:
       - Users
@@ -532,7 +539,7 @@ paths:
           schema:
             type: string
       security:
-      - BearerAuth: []
+      - BearerAuth.: []
       summary: Получение пользователя по id
       tags:
       - Users
@@ -563,7 +570,7 @@ paths:
           schema:
             $ref: '#/definitions/model.Error'
       security:
-      - BearerAuth: []
+      - BearerAuth.: []
       summary: Редактирование пользователя
       tags:
       - Users
@@ -595,7 +602,7 @@ paths:
           schema:
             $ref: '#/definitions/model.Error'
       security:
-      - BearerAuth: []
+      - BearerAuth.: []
       summary: Изменение пароля пользователя
       tags:
       - Users
@@ -627,7 +634,7 @@ paths:
           schema:
             $ref: '#/definitions/model.Error'
       security:
-      - BearerAuth: []
+      - BearerAuth.: []
       summary: Изменение роли пользователя
       tags:
       - Users

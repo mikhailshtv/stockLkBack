@@ -2,6 +2,10 @@ package handler
 
 import "golang/stockLkBack/internal/service"
 
+const (
+	userRoleKey = "role"
+)
+
 type Handler struct {
 	Services *service.Service
 }
