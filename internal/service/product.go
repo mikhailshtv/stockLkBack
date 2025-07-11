@@ -44,11 +44,11 @@ func (s *ProductsService) GetAll() ([]model.Product, error) {
 	return s.repo.GetAll(s.ctx)
 }
 
-func (s *ProductsService) GetByID(id int32) (*model.Product, error) {
+func (s *ProductsService) GetByID(id int) (*model.Product, error) {
 	return s.repo.GetByID(s.ctx, id)
 }
 
-func (s *ProductsService) Delete(id int32) error {
+func (s *ProductsService) Delete(id int) error {
 	delitedProduct, err := s.repo.Delete(s.ctx, id)
 	var result any
 	var status string
@@ -67,7 +67,7 @@ func (s *ProductsService) Delete(id int32) error {
 	return err
 }
 
-func (s *ProductsService) Update(id int32, product model.Product) (*model.Product, error) {
+func (s *ProductsService) Update(id int, product model.Product) (*model.Product, error) {
 	updatedProduct, err := s.repo.Update(s.ctx, id, product)
 	var result any
 	var status string

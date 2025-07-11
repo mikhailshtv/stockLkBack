@@ -2,10 +2,10 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/mikhailshtv/stockLkBack/internal/model"
-	"github.com/mikhailshtv/stockLkBack/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -73,7 +73,7 @@ func (h *Handler) EditProduct(ctx *gin.Context) {
 		return
 	}
 	idStr := ctx.Params.ByName("id")
-	id, err := service.ParseInt32(idStr)
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID продукта"})
 		return
@@ -127,7 +127,7 @@ func (h *Handler) ListProduct(ctx *gin.Context) {
 // @Security BearerAuth.
 func (h *Handler) GetProductByID(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
-	id, err := service.ParseInt32(idStr)
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID продукта"})
 		return
@@ -168,7 +168,7 @@ func (h *Handler) DeleteProduct(ctx *gin.Context) {
 		return
 	}
 	idStr := ctx.Params.ByName("id")
-	id, err := service.ParseInt32(idStr)
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID продукта"})
 		return

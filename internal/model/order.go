@@ -32,14 +32,14 @@ var (
 // сделал конкретные int32 из-за protobuf и линтера (gosec).
 
 type Order struct {
-	ID               int32       `json:"id" bson:"_id,omitempty" db:"id"`
-	Number           int32       `json:"number" bson:"number" db:"order_number"`
-	TotalCost        int32       `json:"totalCost" bson:"totalCost" db:"total_cost"`
+	ID               int         `json:"id" bson:"_id,omitempty" db:"id"`
+	Number           int         `json:"number" bson:"number" db:"order_number"`
+	TotalCost        int         `json:"totalCost" bson:"totalCost" db:"total_cost"`
 	CreatedDate      time.Time   `json:"createdDate" bson:"createdDate" db:"created_date"`
 	LastModifiedDate time.Time   `json:"lastModifiedDate" bson:"lastModifiedDate" db:"last_modified_date"`
 	Status           OrderStatus `json:"status" bson:"status" db:"status"`
 	Products         []Product   `json:"products" binding:"required" bson:"products" db:"-"`
-	UserID           int32       `json:"userId" db:"user_id"`
+	UserID           int         `json:"userId" db:"user_id"`
 }
 
 type OrderRequestBody struct {
@@ -47,9 +47,9 @@ type OrderRequestBody struct {
 }
 
 type OrderProduct struct {
-	ProductID int32 `json:"productId" bindings:"required" db:"product_id"`
-	Quantity  int32 `json:"quantity" bindings:"required" db:"quantity"`    // Количество покупаемых товаров
-	SellPrice int32 `json:"sellPrice" bindings:"required" db:"sell_price"` // Цена товара на момент создания заказа
+	ProductID int `json:"productId" bindings:"required" db:"product_id"`
+	Quantity  int `json:"quantity" bindings:"required" db:"quantity"`    // Количество покупаемых товаров
+	SellPrice int `json:"sellPrice" bindings:"required" db:"sell_price"` // Цена товара на момент создания заказа
 }
 
 func (os *OrderStatus) Scan(value interface{}) error {

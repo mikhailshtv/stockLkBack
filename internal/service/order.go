@@ -23,7 +23,7 @@ func NewOrdersService(ctx context.Context, repo repository.Order) *OrdersService
 	return &OrdersService{repo: repo, ctx: ctx}
 }
 
-func (s *OrdersService) Create(order model.OrderRequestBody, userID int32) (*model.Order, error) {
+func (s *OrdersService) Create(order model.OrderRequestBody, userID int) (*model.Order, error) {
 	createdOrder, err := s.repo.Create(s.ctx, order, userID)
 	var result any
 	var status string
@@ -42,15 +42,15 @@ func (s *OrdersService) Create(order model.OrderRequestBody, userID int32) (*mod
 	return createdOrder, err
 }
 
-func (s *OrdersService) GetAll(userID int32, role model.UserRole) ([]model.Order, error) {
+func (s *OrdersService) GetAll(userID int, role model.UserRole) ([]model.Order, error) {
 	return s.repo.GetAll(s.ctx, userID, role)
 }
 
-func (s *OrdersService) GetByID(id, userID int32, role model.UserRole) (*model.Order, error) {
+func (s *OrdersService) GetByID(id, userID int, role model.UserRole) (*model.Order, error) {
 	return s.repo.GetByID(s.ctx, id, userID, role)
 }
 
-func (s *OrdersService) Delete(id, userID int32) error {
+func (s *OrdersService) Delete(id, userID int) error {
 	delitedOrder, err := s.repo.Delete(s.ctx, id, userID)
 	var result any
 	var status string
@@ -69,7 +69,7 @@ func (s *OrdersService) Delete(id, userID int32) error {
 	return err
 }
 
-func (s *OrdersService) Update(id int32, order model.OrderRequestBody, userID int32) (*model.Order, error) {
+func (s *OrdersService) Update(id int, order model.OrderRequestBody, userID int) (*model.Order, error) {
 	updatedOrder, err := s.repo.Update(s.ctx, id, order, userID)
 	var result any
 	var status string

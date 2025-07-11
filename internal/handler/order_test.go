@@ -16,14 +16,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestHandler_CreateOrder(t *testing.T) {
-	type mockBehavior func(s *mock_service.MockOrder, orderReq model.OrderRequestBody)
+type mockBehaviorCreateOrder func(s *mock_service.MockOrder, orderReq model.OrderRequestBody)
 
+func TestHandler_CreateOrder(t *testing.T) {
 	tests := []struct {
 		name                 string
 		inputBody            string
 		inputOrder           model.OrderRequestBody
-		mockBehavior         mockBehavior
+		mockBehavior         mockBehaviorCreateOrder
 		expectedStatusCode   int
 		expectedResponseBody string
 	}{
@@ -32,11 +32,8 @@ func TestHandler_CreateOrder(t *testing.T) {
 			inputBody: `{
 				"products":[
 					{
-						"id":1,
-						"code":14823,
-						"quantity":215,
-						"name":"Cheese",
-						"purchasePrice":24000,
+						"productId":1,
+						"quantity":1,
 						"sellPrice":74000
 					}
 				]
@@ -61,14 +58,14 @@ func TestHandler_CreateOrder(t *testing.T) {
 						Status:           model.StatusActive,
 						Products: []model.Product{
 							{
-								ID:            1,
-								Code:          14823,
-								Quantity:      215,
-								Name:          "Cheese",
-								PurchasePrice: 24000,
-								SellPrice:     74000,
+								ID:        1,
+								Code:      137207,
+								Quantity:  1,
+								Name:      "Bacon",
+								SellPrice: 74000,
 							},
 						},
+						UserID: 1,
 					}, nil,
 				)
 			},
@@ -79,17 +76,17 @@ func TestHandler_CreateOrder(t *testing.T) {
 				"totalCost":74000,
 				"createdDate":"2025-05-25T12:17:16.550631Z",
 				"lastModifiedDate":"2025-05-25T12:17:16.550631Z",
-				"status":1,
+				"status":{"key":"active","displayName":"Активный"},
 				"products":[
 					{
 						"id":1,
-						"code":14823,
-						"quantity":215,
-						"name":"Cheese",
-						"purchasePrice":24000,
+						"code":137207,
+						"quantity":1,
+						"name":"Bacon",
 						"sellPrice":74000
 					}
-				]
+				],
+				"userId":1
 			}`,
 		},
 		{
@@ -108,52 +105,38 @@ func TestHandler_CreateOrder(t *testing.T) {
 			expectedResponseBody: `{"error":"Некорректное тело запроса"}`,
 		},
 		{
-			name: "Ошибка сохранения в файл",
+			name: "Ошибка 500",
 			inputBody: `
 				{
-					"products":[
-						{
-							"id":1,
-							"code":14823,
-							"quantity":215,
-							"name":"Cheese",
-							"purchasePrice":24000,
-							"sellPrice":74000
-						}
-					]
+					"products":[]
 				}`,
 			inputOrder: model.OrderRequestBody{
-				Products: []model.OrderProduct{
-					{
-						ProductID: 1,
-						Quantity:  1,
-						SellPrice: 74000,
-					},
-				},
+				Products: []model.OrderProduct{},
 			},
 			mockBehavior: func(s *mock_service.MockOrder, orderReq model.OrderRequestBody) {
-				s.EXPECT().Create(orderReq, 1).Return(nil, errors.New("ошибка сохранения в файл"))
+				s.EXPECT().Create(orderReq, 1).Return(nil, errors.New("список товаров не может быть пустым"))
 			},
 			expectedStatusCode:   500,
-			expectedResponseBody: `{"error":"ошибка сохранения в файл"}`,
+			expectedResponseBody: `{"error":"список товаров не может быть пустым"}`,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			c := gomock.NewController(t)
-			t.Cleanup(func() { c.Finish() })
-			repo := mock_service.NewMockOrder(c)
+			repo := repo(t)
 			test.mockBehavior(repo, test.inputOrder)
 			services := &service.Service{Order: repo}
 			handler := NewHandler(services)
 			r := gin.New()
-			r.POST("/orders", handler.CreateOrder)
+			r.POST("/orders", func(ctx *gin.Context) {
+				ctx.Set("userId", 1)
+				handler.CreateOrder(ctx)
+			})
 			w := httptest.NewRecorder()
 			req := httptest.NewRequest("POST", "/orders", bytes.NewBufferString(test.inputBody))
 			r.ServeHTTP(w, req)
 			assert.Equal(t, w.Code, test.expectedStatusCode)
-			assert.Equal(t, w.Body.String(), test.expectedResponseBody)
+			assert.JSONEq(t, test.expectedResponseBody, w.Body.String())
 		})
 	}
 }
@@ -181,14 +164,14 @@ func TestHandler_ListOrders(t *testing.T) {
 							Status:           model.StatusActive,
 							Products: []model.Product{
 								{
-									ID:            1,
-									Code:          14823,
-									Quantity:      215,
-									Name:          "Cheese",
-									PurchasePrice: 24000,
-									SellPrice:     74000,
+									ID:        1,
+									Code:      14823,
+									Quantity:  1,
+									Name:      "Cheese",
+									SellPrice: 74000,
 								},
 							},
+							UserID: 1,
 						},
 					}, nil,
 				)
@@ -201,17 +184,17 @@ func TestHandler_ListOrders(t *testing.T) {
 					"totalCost":74000,
 					"createdDate":"2025-05-25T12:17:16.550631Z",
 					"lastModifiedDate":"2025-05-25T12:17:16.550631Z",
-					"status":1,
+					"status":{"key":"active","displayName":"Активный"},
 					"products":[
 						{
 							"id":1,
 							"code":14823,
-							"quantity":215,
+							"quantity":1,
 							"name":"Cheese",
-							"purchasePrice":24000,
 							"sellPrice":74000
 						}
-					]
+					],
+					"userId":1
 				}
 			]`,
 		},
@@ -229,17 +212,17 @@ func TestHandler_ListOrders(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			c := gomock.NewController(t)
-			t.Cleanup(func() { c.Finish() })
-
-			repo := mock_service.NewMockOrder(c)
+			repo := repo(t)
 			test.mockBehavior(repo)
 			services := &service.Service{Order: repo}
-
 			handler := NewHandler(services)
 
 			r := gin.New()
-			r.GET("/orders", handler.ListOrders)
+			r.GET("/orders", func(ctx *gin.Context) {
+				ctx.Set("userId", 1)
+				ctx.Set("role", model.RoleEmployee)
+				handler.ListOrders(ctx)
+			})
 
 			w := httptest.NewRecorder()
 			req := httptest.NewRequest("GET", "/orders", nil)
@@ -247,7 +230,7 @@ func TestHandler_ListOrders(t *testing.T) {
 			r.ServeHTTP(w, req)
 
 			assert.Equal(t, w.Code, test.expectedStatusCode)
-			assert.Equal(t, w.Body.String(), test.expectedResponseBody)
+			assert.JSONEq(t, test.expectedResponseBody, w.Body.String())
 		})
 	}
 }
@@ -269,11 +252,8 @@ func TestHandler_EditOrders(t *testing.T) {
 				{
 					"products":[
 						{
-							"id":1,
-							"code":14823,
-							"quantity":215,
-							"name":"Cheese",
-							"purchasePrice":24000,
+							"productId":1,
+							"quantity":1,
 							"sellPrice":74000
 						}
 					]
@@ -298,14 +278,14 @@ func TestHandler_EditOrders(t *testing.T) {
 						Status:           model.StatusActive,
 						Products: []model.Product{
 							{
-								ID:            1,
-								Code:          14823,
-								Quantity:      215,
-								Name:          "Cheese",
-								PurchasePrice: 24000,
-								SellPrice:     74000,
+								ID:        1,
+								Code:      14823,
+								Quantity:  1,
+								Name:      "Cheese",
+								SellPrice: 74000,
 							},
 						},
+						UserID: 1,
 					}, nil,
 				)
 			},
@@ -317,34 +297,32 @@ func TestHandler_EditOrders(t *testing.T) {
 					"totalCost":74000,
 					"createdDate":"2025-05-25T12:17:16.550631Z",
 					"lastModifiedDate":"2025-05-25T12:17:16.550631Z",
-					"status":1,
+					"status":{"key":"active","displayName":"Активный"},
 					"products":[
 						{
 							"id":1,
 							"code":14823,
-							"quantity":215,
+							"quantity":1,
 							"name":"Cheese",
-							"purchasePrice":24000,
 							"sellPrice":74000
 						}
-					]
+					],
+					"userId":1
 				}`,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			c := gomock.NewController(t)
-			t.Cleanup(func() { c.Finish() })
-
-			repo := mock_service.NewMockOrder(c)
+			repo := repo(t)
 			test.mockBehavior(repo, test.inputOrder)
 			services := &service.Service{Order: repo}
-
 			handler := NewHandler(services)
-
 			r := gin.New()
-			r.PUT("/orders/:id", handler.EditOrder)
+			r.PUT("/orders/:id", func(ctx *gin.Context) {
+				ctx.Set("userId", 1)
+				handler.EditOrder(ctx)
+			})
 
 			w := httptest.NewRecorder()
 			req := httptest.NewRequest("PUT", "/orders/1", bytes.NewBufferString(test.inputBody))
@@ -352,7 +330,7 @@ func TestHandler_EditOrders(t *testing.T) {
 			r.ServeHTTP(w, req)
 
 			assert.Equal(t, w.Code, test.expectedStatusCode)
-			assert.Equal(t, w.Body.String(), test.expectedResponseBody)
+			assert.JSONEq(t, test.expectedResponseBody, w.Body.String())
 		})
 	}
 }
@@ -379,14 +357,14 @@ func TestHandler_GetOrderById(t *testing.T) {
 						Status:           model.StatusActive,
 						Products: []model.Product{
 							{
-								ID:            1,
-								Code:          14823,
-								Quantity:      215,
-								Name:          "Cheese",
-								PurchasePrice: 24000,
-								SellPrice:     74000,
+								ID:        1,
+								Code:      14823,
+								Quantity:  1,
+								Name:      "Cheese",
+								SellPrice: 74000,
 							},
 						},
+						UserID: 1,
 					}, nil,
 				)
 			},
@@ -398,34 +376,33 @@ func TestHandler_GetOrderById(t *testing.T) {
 					"totalCost":74000,
 					"createdDate":"2025-05-25T12:17:16.550631Z",
 					"lastModifiedDate":"2025-05-25T12:17:16.550631Z",
-					"status":1,
+					"status":{"key":"active","displayName":"Активный"},
 					"products":[
 						{
 							"id":1,
 							"code":14823,
-							"quantity":215,
+							"quantity":1,
 							"name":"Cheese",
-							"purchasePrice":24000,
 							"sellPrice":74000
 						}
-					]
+					],
+					"userId":1
 				}`,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			c := gomock.NewController(t)
-			t.Cleanup(func() { c.Finish() })
-
-			repo := mock_service.NewMockOrder(c)
+			repo := repo(t)
 			test.mockBehavior(repo)
 			services := &service.Service{Order: repo}
-
 			handler := NewHandler(services)
-
 			r := gin.New()
-			r.GET("/orders/:id", handler.GetOrderByID)
+			r.GET("/orders/:id", func(ctx *gin.Context) {
+				ctx.Set("userId", 1)
+				ctx.Set("role", model.RoleEmployee)
+				handler.GetOrderByID(ctx)
+			})
 
 			w := httptest.NewRecorder()
 			req := httptest.NewRequest("GET", "/orders/1", nil)
@@ -433,7 +410,7 @@ func TestHandler_GetOrderById(t *testing.T) {
 			r.ServeHTTP(w, req)
 
 			assert.Equal(t, w.Code, test.expectedStatusCode)
-			assert.Equal(t, w.Body.String(), test.expectedResponseBody)
+			assert.JSONEq(t, test.expectedResponseBody, w.Body.String())
 		})
 	}
 }
@@ -467,17 +444,17 @@ func TestHandler_DeleteOrder(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			c := gomock.NewController(t)
-			t.Cleanup(func() { c.Finish() })
-
-			repo := mock_service.NewMockOrder(c)
+			repo := repo(t)
 			test.mockBehavior(repo)
-			services := &service.Service{Order: repo}
 
+			services := &service.Service{Order: repo}
 			handler := NewHandler(services)
 
 			r := gin.New()
-			r.DELETE("/orders/:id", handler.DeleteOrder)
+			r.DELETE("/orders/:id", func(ctx *gin.Context) {
+				ctx.Set("userId", 1)
+				handler.DeleteOrder(ctx)
+			})
 
 			w := httptest.NewRecorder()
 			req := httptest.NewRequest("DELETE", "/orders/1", nil)
@@ -488,4 +465,11 @@ func TestHandler_DeleteOrder(t *testing.T) {
 			assert.Equal(t, w.Body.String(), test.expectedResponseBody)
 		})
 	}
+}
+
+func repo(t *testing.T) *mock_service.MockOrder {
+	t.Helper()
+	c := gomock.NewController(t)
+	t.Cleanup(func() { c.Finish() })
+	return mock_service.NewMockOrder(c)
 }

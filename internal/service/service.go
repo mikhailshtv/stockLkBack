@@ -11,19 +11,19 @@ import (
 //go:generate mockgen -source=service.go -destination=mocks/mock.go
 
 type Order interface {
-	Create(order model.OrderRequestBody, userID int32) (*model.Order, error)
-	GetAll(userID int32, role model.UserRole) ([]model.Order, error)
-	GetByID(id, userID int32, role model.UserRole) (*model.Order, error)
-	Delete(id, userID int32) error
-	Update(id int32, order model.OrderRequestBody, userID int32) (*model.Order, error)
+	Create(order model.OrderRequestBody, userID int) (*model.Order, error)
+	GetAll(userID int, role model.UserRole) ([]model.Order, error)
+	GetByID(id, userID int, role model.UserRole) (*model.Order, error)
+	Delete(id, userID int) error
+	Update(id int, order model.OrderRequestBody, userID int) (*model.Order, error)
 }
 
 type Product interface {
 	Create(product model.Product) (*model.Product, error)
 	GetAll() ([]model.Product, error)
-	GetByID(id int32) (*model.Product, error)
-	Delete(id int32) error
-	Update(id int32, product model.Product) (*model.Product, error)
+	GetByID(id int) (*model.Product, error)
+	Delete(id int) error
+	Update(id int, product model.Product) (*model.Product, error)
 }
 
 type User interface {

@@ -14,8 +14,6 @@ import (
 )
 
 func TestOrderService_Create(t *testing.T) {
-	t.Parallel()
-
 	ctrl := gomock.NewController(t)
 	t.Cleanup(func() { ctrl.Finish() })
 
@@ -125,8 +123,6 @@ func TestOrderService_Create(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
 			os := &Service{Order: dbMock}
 
 			tt.mock()
@@ -145,13 +141,12 @@ func TestOrderService_Create(t *testing.T) {
 }
 
 func TestOrderService_Update(t *testing.T) {
-	t.Parallel()
 	ctrl := gomock.NewController(t)
 	t.Cleanup(func() { ctrl.Finish() })
 	dbMock := mocks.NewMockOrder(ctrl)
 
 	type requestBody struct {
-		id   int32
+		id   int
 		body model.OrderRequestBody
 	}
 
@@ -267,7 +262,6 @@ func TestOrderService_Update(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
 			os := &Service{Order: dbMock}
 			tt.mock()
 			got, err := os.Order.Update(tt.args.id, tt.args.body, 1)
@@ -283,8 +277,6 @@ func TestOrderService_Update(t *testing.T) {
 }
 
 func TestOrderService_GetAll(t *testing.T) {
-	t.Parallel()
-
 	ctrl := gomock.NewController(t)
 	t.Cleanup(func() { ctrl.Finish() })
 
@@ -348,8 +340,6 @@ func TestOrderService_GetAll(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
 			os := &Service{Order: dbMock}
 
 			tt.mock()
@@ -368,8 +358,6 @@ func TestOrderService_GetAll(t *testing.T) {
 }
 
 func TestOrderService_GetById(t *testing.T) {
-	t.Parallel()
-
 	ctrl := gomock.NewController(t)
 	t.Cleanup(func() { ctrl.Finish() })
 
@@ -378,7 +366,7 @@ func TestOrderService_GetById(t *testing.T) {
 	tests := []struct {
 		name    string
 		mock    func()
-		args    int32
+		args    int
 		want    *model.Order
 		wantErr bool
 	}{
@@ -443,8 +431,6 @@ func TestOrderService_GetById(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
 			os := &Service{Order: dbMock}
 
 			tt.mock()
@@ -463,8 +449,6 @@ func TestOrderService_GetById(t *testing.T) {
 }
 
 func TestOrderService_Delete(t *testing.T) {
-	t.Parallel()
-
 	ctrl := gomock.NewController(t)
 	t.Cleanup(func() { ctrl.Finish() })
 
@@ -473,7 +457,7 @@ func TestOrderService_Delete(t *testing.T) {
 	tests := []struct {
 		name    string
 		mock    func()
-		args    int32
+		args    int
 		want    error
 		wantErr bool
 	}{
@@ -501,8 +485,6 @@ func TestOrderService_Delete(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
 			os := &Service{Order: dbMock}
 
 			tt.mock()

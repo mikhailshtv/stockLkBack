@@ -66,7 +66,7 @@ func (pr *ProductsRepository) GetAll(ctx context.Context) ([]model.Product, erro
 	return products, nil
 }
 
-func (pr *ProductsRepository) GetByID(ctx context.Context, id int32) (*model.Product, error) {
+func (pr *ProductsRepository) GetByID(ctx context.Context, id int) (*model.Product, error) {
 	var product model.Product
 	err := pr.db.GetContext(ctx, &product,
 		"SELECT * FROM products.products WHERE id = $1", id)
@@ -79,7 +79,7 @@ func (pr *ProductsRepository) GetByID(ctx context.Context, id int32) (*model.Pro
 	return &product, nil
 }
 
-func (pr *ProductsRepository) Delete(ctx context.Context, id int32) (*model.Product, error) {
+func (pr *ProductsRepository) Delete(ctx context.Context, id int) (*model.Product, error) {
 	const query = `
 		WITH deleted AS (
 			DELETE FROM products.products 
@@ -101,7 +101,7 @@ func (pr *ProductsRepository) Delete(ctx context.Context, id int32) (*model.Prod
 	return &deletedProduct, nil
 }
 
-func (pr *ProductsRepository) Update(ctx context.Context, id int32, product model.Product) (*model.Product, error) {
+func (pr *ProductsRepository) Update(ctx context.Context, id int, product model.Product) (*model.Product, error) {
 	const query = `
 		UPDATE products.products SET
 			code = $1,

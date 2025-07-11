@@ -35,6 +35,7 @@ import (
 // @name Authorization
 
 func main() {
+	// C.hello()
 	ctx := context.Background()
 	appConfig := config.NewConfig()
 

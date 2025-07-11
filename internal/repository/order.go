@@ -34,7 +34,7 @@ func NewOrdersRepository(db *sqlx.DB, redis *redis.Client, collectionName string
 func (or *OrdersRepository) Create(
 	ctx context.Context,
 	orderRequest model.OrderRequestBody,
-	userID int32,
+	userID int,
 ) (*model.Order, error) {
 	if len(orderRequest.Products) == 0 {
 		return nil, fmt.Errorf("список товаров не может быть пустым")
@@ -59,7 +59,7 @@ func (or *OrdersRepository) Create(
 	return nil, fmt.Errorf("не удалось создать заказ после %d попыток: %w", maxRetries, lastErr)
 }
 
-func (or *OrdersRepository) GetAll(ctx context.Context, userID int32, role model.UserRole) ([]model.Order, error) {
+func (or *OrdersRepository) GetAll(ctx context.Context, userID int, role model.UserRole) ([]model.Order, error) {
 	var orders []model.Order
 
 	query := `
@@ -105,7 +105,7 @@ func (or *OrdersRepository) GetAll(ctx context.Context, userID int32, role model
 	return orders, nil
 }
 
-func (or *OrdersRepository) GetByID(ctx context.Context, id, userID int32, role model.UserRole) (*model.Order, error) {
+func (or *OrdersRepository) GetByID(ctx context.Context, id, userID int, role model.UserRole) (*model.Order, error) {
 	query := `
 		SELECT *
 		FROM orders.orders
@@ -150,7 +150,7 @@ func (or *OrdersRepository) GetByID(ctx context.Context, id, userID int32, role 
 	return &order, nil
 }
 
-func (or *OrdersRepository) Delete(ctx context.Context, id, userID int32) (*model.Order, error) {
+func (or *OrdersRepository) Delete(ctx context.Context, id, userID int) (*model.Order, error) {
 	var lastErr error
 
 	for i := 0; i < maxRetries; i++ {
@@ -172,9 +172,9 @@ func (or *OrdersRepository) Delete(ctx context.Context, id, userID int32) (*mode
 
 func (or *OrdersRepository) Update(
 	ctx context.Context,
-	id int32,
+	id int,
 	orderRequest model.OrderRequestBody,
-	userID int32,
+	userID int,
 ) (*model.Order, error) {
 	if len(orderRequest.Products) == 0 {
 		return nil, fmt.Errorf("список товаров не может быть пустым")
@@ -206,7 +206,7 @@ func (or *OrdersRepository) WriteLog(result any, operation, status, tableName st
 func (or *OrdersRepository) tryCreateOrder(
 	ctx context.Context,
 	request model.OrderRequestBody,
-	userID int32,
+	userID int,
 ) (*model.Order, error) {
 	tx, err := or.db.BeginTxx(ctx, &sql.TxOptions{
 		Isolation: sql.LevelSerializable,
@@ -240,8 +240,8 @@ func (or *OrdersRepository) tryCreateOrder(
 	// 2. Добавляем товары в заказ
 	for _, product := range request.Products {
 		log.Println(product.ProductID)
-		var available int32
-		var version int32
+		var available int
+		var version int
 		err = tx.QueryRowContext(ctx, `
 			SELECT quantity, version FROM products.products WHERE id = $1
 		`, product.ProductID).Scan(&available, &version)
@@ -327,9 +327,9 @@ func (or *OrdersRepository) tryCreateOrder(
 
 func (or *OrdersRepository) tryUpdateOrder(
 	ctx context.Context,
-	id int32,
+	id int,
 	orderRequest model.OrderRequestBody,
-	userID int32,
+	userID int,
 ) (*model.Order, error) {
 	tx, err := or.db.BeginTxx(ctx, &sql.TxOptions{
 		Isolation: sql.LevelSerializable,
@@ -379,7 +379,7 @@ func (or *OrdersRepository) tryUpdateOrder(
 func (or *OrdersRepository) getOrderForUpdate(
 	ctx context.Context,
 	tx *sqlx.Tx,
-	id, userID int32,
+	id, userID int,
 ) (*model.Order, error) {
 	var order model.Order
 	err := tx.GetContext(ctx, &order, `
@@ -400,7 +400,7 @@ func (or *OrdersRepository) getOrderForUpdate(
 func (or *OrdersRepository) getCurrentOrderProducts(
 	ctx context.Context,
 	tx *sqlx.Tx,
-	orderID int32,
+	orderID int,
 ) ([]model.OrderProduct, error) {
 	var products []model.OrderProduct
 	err := tx.SelectContext(ctx, &products, `
@@ -417,16 +417,16 @@ func (or *OrdersRepository) getCurrentOrderProducts(
 func (or *OrdersRepository) processProductChanges(
 	ctx context.Context,
 	tx *sqlx.Tx,
-	orderID int32,
+	orderID int,
 	currentProducts []model.OrderProduct,
 	newProducts []model.OrderProduct,
 ) error {
-	oldProductsMap := make(map[int32]model.OrderProduct)
+	oldProductsMap := make(map[int]model.OrderProduct)
 	for _, p := range currentProducts {
 		oldProductsMap[p.ProductID] = p
 	}
 
-	newProductsMap := make(map[int32]model.OrderProduct)
+	newProductsMap := make(map[int]model.OrderProduct)
 	for _, p := range newProducts {
 		newProductsMap[p.ProductID] = p
 	}
@@ -486,11 +486,11 @@ func (or *OrdersRepository) processProductChanges(
 func (or *OrdersRepository) addNewProducts(
 	ctx context.Context,
 	tx *sqlx.Tx,
-	orderID int32,
+	orderID int,
 	currentProducts []model.OrderProduct,
 	newProducts []model.OrderProduct,
 ) error {
-	oldProductsMap := make(map[int32]model.OrderProduct)
+	oldProductsMap := make(map[int]model.OrderProduct)
 	for _, p := range currentProducts {
 		oldProductsMap[p.ProductID] = p
 	}
@@ -498,7 +498,7 @@ func (or *OrdersRepository) addNewProducts(
 	for _, newProduct := range newProducts {
 		if _, exists := oldProductsMap[newProduct.ProductID]; !exists {
 			// Проверяем доступность товара
-			var available int32
+			var available int
 			err := tx.GetContext(ctx, &available, `
 				SELECT quantity FROM products.products WHERE id = $1
 			`, newProduct.ProductID)
@@ -536,7 +536,7 @@ func (or *OrdersRepository) addNewProducts(
 	return nil
 }
 
-func (or *OrdersRepository) updateOrderModifiedDate(ctx context.Context, tx *sqlx.Tx, orderID int32) error {
+func (or *OrdersRepository) updateOrderModifiedDate(ctx context.Context, tx *sqlx.Tx, orderID int) error {
 	_, err := tx.ExecContext(ctx, `
 		UPDATE orders.orders
 		SET last_modified_date = NOW()
@@ -548,7 +548,7 @@ func (or *OrdersRepository) updateOrderModifiedDate(ctx context.Context, tx *sql
 	return nil
 }
 
-func (or *OrdersRepository) getUpdatedOrder(ctx context.Context, tx *sqlx.Tx, orderID int32) (*model.Order, error) {
+func (or *OrdersRepository) getUpdatedOrder(ctx context.Context, tx *sqlx.Tx, orderID int) (*model.Order, error) {
 	var order model.Order
 	err := tx.GetContext(ctx, &order, `
 		SELECT *
@@ -574,7 +574,7 @@ func (or *OrdersRepository) getUpdatedOrder(ctx context.Context, tx *sqlx.Tx, or
 	return &order, nil
 }
 
-func (or *OrdersRepository) tryDeleteOrder(ctx context.Context, orderID, userID int32) (*model.Order, error) {
+func (or *OrdersRepository) tryDeleteOrder(ctx context.Context, orderID, userID int) (*model.Order, error) {
 	tx, err := or.db.BeginTxx(ctx, &sql.TxOptions{
 		Isolation: sql.LevelSerializable,
 	})

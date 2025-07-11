@@ -35,7 +35,7 @@ func (m *MockOrder) EXPECT() *MockOrderMockRecorder {
 }
 
 // Create mocks base method.
-func (m *MockOrder) Create(order model.OrderRequestBody, userID int32) (*model.Order, error) {
+func (m *MockOrder) Create(order model.OrderRequestBody, userID int) (*model.Order, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Create", order, userID)
 	ret0, _ := ret[0].(*model.Order)
@@ -50,7 +50,7 @@ func (mr *MockOrderMockRecorder) Create(order, userID interface{}) *gomock.Call 
 }
 
 // Delete mocks base method.
-func (m *MockOrder) Delete(id, userID int32) error {
+func (m *MockOrder) Delete(id, userID int) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Delete", id, userID)
 	ret0, _ := ret[0].(error)
@@ -64,7 +64,7 @@ func (mr *MockOrderMockRecorder) Delete(id, userID interface{}) *gomock.Call {
 }
 
 // GetAll mocks base method.
-func (m *MockOrder) GetAll(userID int32, role model.UserRole) ([]model.Order, error) {
+func (m *MockOrder) GetAll(userID int, role model.UserRole) ([]model.Order, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAll", userID, role)
 	ret0, _ := ret[0].([]model.Order)
@@ -79,7 +79,7 @@ func (mr *MockOrderMockRecorder) GetAll(userID, role interface{}) *gomock.Call {
 }
 
 // GetByID mocks base method.
-func (m *MockOrder) GetByID(id, userID int32, role model.UserRole) (*model.Order, error) {
+func (m *MockOrder) GetByID(id, userID int, role model.UserRole) (*model.Order, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetByID", id, userID, role)
 	ret0, _ := ret[0].(*model.Order)
@@ -94,7 +94,7 @@ func (mr *MockOrderMockRecorder) GetByID(id, userID, role interface{}) *gomock.C
 }
 
 // Update mocks base method.
-func (m *MockOrder) Update(id int32, order model.OrderRequestBody, userID int32) (*model.Order, error) {
+func (m *MockOrder) Update(id int, order model.OrderRequestBody, userID int) (*model.Order, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Update", id, order, userID)
 	ret0, _ := ret[0].(*model.Order)
@@ -147,7 +147,7 @@ func (mr *MockProductMockRecorder) Create(product interface{}) *gomock.Call {
 }
 
 // Delete mocks base method.
-func (m *MockProduct) Delete(id int32) error {
+func (m *MockProduct) Delete(id int) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Delete", id)
 	ret0, _ := ret[0].(error)
@@ -176,7 +176,7 @@ func (mr *MockProductMockRecorder) GetAll() *gomock.Call {
 }
 
 // GetByID mocks base method.
-func (m *MockProduct) GetByID(id int32) (*model.Product, error) {
+func (m *MockProduct) GetByID(id int) (*model.Product, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetByID", id)
 	ret0, _ := ret[0].(*model.Product)
@@ -191,7 +191,7 @@ func (mr *MockProductMockRecorder) GetByID(id interface{}) *gomock.Call {
 }
 
 // Update mocks base method.
-func (m *MockProduct) Update(id int32, product model.Product) (*model.Product, error) {
+func (m *MockProduct) Update(id int, product model.Product) (*model.Product, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Update", id, product)
 	ret0, _ := ret[0].(*model.Product)

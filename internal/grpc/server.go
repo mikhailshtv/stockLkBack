@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
+	"math"
 	"net"
 	"time"
 
@@ -31,7 +33,7 @@ func (s *server) GetOrders(
 	_ context.Context,
 	req *orders_api.OrderGetAllRequest,
 ) (*orders_api.GetOrdersResponse, error) {
-	ordersAll, err := s.handler.Services.Order.GetAll(req.UserId, model.UserRole(req.Role))
+	ordersAll, err := s.handler.Services.Order.GetAll(int(req.UserId), model.UserRole(req.Role))
 	if err != nil {
 		log.Println(err.Error())
 		err = status.Errorf(codes.Internal, "Ошибка получения списка заказов")
@@ -70,7 +72,7 @@ func (s *server) GetOrder(
 		return nil, err
 	}
 
-	receivedOrder, err := s.handler.Services.Order.GetByID(orderID, req.UserId, model.UserRole(req.Role))
+	receivedOrder, err := s.handler.Services.Order.GetByID(int(orderID), int(req.UserId), model.UserRole(req.Role))
 	if err != nil {
 		if err.Error() == repository.NotFoundErrorMessage {
 			err = status.Errorf(codes.NotFound, "Объект не найден")
@@ -123,7 +125,7 @@ func (s *server) CreateOrder(
 	if err != nil {
 		log.Println(err.Error())
 	}
-	order, err := s.handler.Services.Order.Create(orderReq, userID)
+	order, err := s.handler.Services.Order.Create(orderReq, int(userID))
 	if err != nil {
 		log.Println(err.Error())
 		err = status.Errorf(codes.Internal, "Ошибка при создании заказа")
@@ -132,24 +134,7 @@ func (s *server) CreateOrder(
 		}
 	}
 
-	protoProductsJSON, err := json.Marshal(order.Products)
-	if err != nil {
-		log.Println(err.Error())
-	}
-	var protoProducts []*orders_api.Product
-	err = json.Unmarshal(protoProductsJSON, &protoProducts)
-	if err != nil {
-		log.Println(err.Error())
-	}
-	return &orders_api.Order{
-		Id:               order.ID,
-		Number:           order.Number,
-		TotalCost:        order.TotalCost,
-		CreatedDate:      timestamppb.New(order.CreatedDate),
-		LastModifiedDate: timestamppb.New(order.LastModifiedDate),
-		Status:           &orders_api.OrderStatus{Key: order.Status.Key, DisplayName: order.Status.DisplayName},
-		Products:         protoProducts,
-	}, nil
+	return convertOrderToProto(order)
 }
 
 func (s *server) EditOrder(
@@ -183,7 +168,7 @@ func (s *server) EditOrder(
 		}
 	}
 
-	order, err := s.handler.Services.Order.Update(orderID, orderReq, userID)
+	order, err := s.handler.Services.Order.Update(int(orderID), orderReq, int(userID))
 	if err != nil {
 		log.Println(err.Error())
 		if err.Error() == repository.NotFoundErrorMessage {
@@ -200,24 +185,7 @@ func (s *server) EditOrder(
 		return nil, err
 	}
 
-	protoProductsJSON, err := json.Marshal(order.Products)
-	if err != nil {
-		log.Println(err.Error())
-	}
-	var protoProducts []*orders_api.Product
-	err = json.Unmarshal(protoProductsJSON, &protoProducts)
-	if err != nil {
-		log.Println(err.Error())
-	}
-	return &orders_api.Order{
-		Id:               order.ID,
-		Number:           order.Number,
-		TotalCost:        order.TotalCost,
-		CreatedDate:      timestamppb.New(order.CreatedDate),
-		LastModifiedDate: timestamppb.New(order.LastModifiedDate),
-		Status:           &orders_api.OrderStatus{Key: order.Status.Key, DisplayName: order.Status.DisplayName},
-		Products:         protoProducts,
-	}, nil
+	return convertOrderToProto(order)
 }
 
 func (s *server) DeleteOrder(
@@ -234,7 +202,7 @@ func (s *server) DeleteOrder(
 		return nil, err
 	}
 
-	err := s.handler.Services.Order.Delete(orderID, userID)
+	err := s.handler.Services.Order.Delete(int(orderID), int(userID))
 	if err != nil {
 		if err.Error() == repository.NotFoundErrorMessage {
 			err = status.Errorf(codes.NotFound, "Объект не найден")
@@ -316,4 +284,64 @@ func loggingInterceptor(
 	)
 
 	return resp, err
+}
+
+func convertOrderToProto(order *model.Order) (*orders_api.Order, error) {
+	id, err := safeIntToInt32(order.ID, "ID заказа")
+	if err != nil {
+		return nil, fmt.Errorf("ошибка валидации заказа: %w", err)
+	}
+
+	number, err := safeIntToInt32(order.Number, "номер заказа")
+	if err != nil {
+		return nil, fmt.Errorf("ошибка валидации номера: %w", err)
+	}
+
+	totalCost, err := safeIntToInt32(order.TotalCost, "общая стоимость")
+	if err != nil {
+		return nil, fmt.Errorf("ошибка валидации стоимости: %w", err)
+	}
+
+	protoProducts, err := convertProductsToProto(order.Products)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка конвертации продуктов: %w", err)
+	}
+
+	return &orders_api.Order{
+		Id:               id,
+		Number:           number,
+		TotalCost:        totalCost,
+		CreatedDate:      timestamppb.New(order.CreatedDate),
+		LastModifiedDate: timestamppb.New(order.LastModifiedDate),
+		Status: &orders_api.OrderStatus{
+			Key:         order.Status.Key,
+			DisplayName: order.Status.DisplayName,
+		},
+		Products: protoProducts,
+	}, nil
+}
+
+func safeIntToInt32(value int, fieldName string) (int32, error) {
+	if value > math.MaxInt32 {
+		return 0, fmt.Errorf("значение %d для поля '%s' превышает максимально допустимое %d",
+			value, fieldName, math.MaxInt32)
+	}
+	if value < math.MinInt32 {
+		return 0, fmt.Errorf("значение %d для поля '%s' меньше минимально допустимого %d",
+			value, fieldName, math.MinInt32)
+	}
+	return int32(value), nil
+}
+
+func convertProductsToProto(products []model.Product) ([]*orders_api.Product, error) {
+	protoProductsJSON, err := json.Marshal(products)
+	if err != nil {
+		return []*orders_api.Product{}, err
+	}
+	var protoProducts []*orders_api.Product
+	err = json.Unmarshal(protoProductsJSON, &protoProducts)
+	if err != nil {
+		return []*orders_api.Product{}, err
+	}
+	return protoProducts, nil
 }
