@@ -6,13 +6,13 @@ import (
 	"log"
 	"os"
 
-	_ "golang/stockLkBack/docs"
-	"golang/stockLkBack/internal/app"
-	"golang/stockLkBack/internal/config"
-	"golang/stockLkBack/internal/grpc"
-	"golang/stockLkBack/internal/handler"
-	"golang/stockLkBack/internal/repository"
-	"golang/stockLkBack/internal/service"
+	_ "github.com/mikhailshtv/stockLkBack/docs"
+	"github.com/mikhailshtv/stockLkBack/internal/app"
+	"github.com/mikhailshtv/stockLkBack/internal/config"
+	"github.com/mikhailshtv/stockLkBack/internal/grpc"
+	"github.com/mikhailshtv/stockLkBack/internal/handler"
+	"github.com/mikhailshtv/stockLkBack/internal/repository"
+	"github.com/mikhailshtv/stockLkBack/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
@@ -49,7 +49,7 @@ func main() {
 	dbPass := os.Getenv("DB_PASSWORD")
 	dbName := os.Getenv("DB_NAME")
 
-	sqlConfig := repository.SqlConfig{
+	sqlConfig := repository.SQLConfig{
 		Host:           dbHost,
 		Port:           dbPort,
 		User:           dbUser,
@@ -84,7 +84,7 @@ func main() {
 	}
 
 	repo := repository.NewRepository(db, clientRedis)
-	services := service.NewService(repo, ctx)
+	services := service.NewService(ctx, repo)
 	handlers := handler.NewHandler(services)
 
 	go grpc.StartServer(handlers)

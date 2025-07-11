@@ -5,10 +5,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"golang/stockLkBack/internal/model"
 	"log"
 	"strings"
 	"time"
+
+	"github.com/mikhailshtv/stockLkBack/internal/model"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/jackc/pgconn"
@@ -30,14 +31,18 @@ func NewOrdersRepository(db *sqlx.DB, redis *redis.Client, collectionName string
 	return &OrdersRepository{db: db, redis: redis, collectionName: collectionName}
 }
 
-func (or *OrdersRepository) Create(orderRequest model.OrderRequestBody, userID int32, ctx context.Context) (*model.Order, error) {
+func (or *OrdersRepository) Create(
+	ctx context.Context,
+	orderRequest model.OrderRequestBody,
+	userID int32,
+) (*model.Order, error) {
 	if len(orderRequest.Products) == 0 {
 		return nil, fmt.Errorf("список товаров не может быть пустым")
 	}
 	var lastErr error
 
 	for i := 0; i < maxRetries; i++ {
-		order, err := or.tryCreateOrder(orderRequest, userID, ctx)
+		order, err := or.tryCreateOrder(ctx, orderRequest, userID)
 		if err == nil {
 			return order, nil
 		}
@@ -54,7 +59,7 @@ func (or *OrdersRepository) Create(orderRequest model.OrderRequestBody, userID i
 	return nil, fmt.Errorf("не удалось создать заказ после %d попыток: %w", maxRetries, lastErr)
 }
 
-func (or *OrdersRepository) GetAll(userID int32, role model.UserRole, ctx context.Context) ([]model.Order, error) {
+func (or *OrdersRepository) GetAll(ctx context.Context, userID int32, role model.UserRole) ([]model.Order, error) {
 	var orders []model.Order
 
 	query := `
@@ -101,7 +106,7 @@ func (or *OrdersRepository) GetAll(userID int32, role model.UserRole, ctx contex
 	return orders, nil
 }
 
-func (or *OrdersRepository) GetByID(id, userID int32, role model.UserRole, ctx context.Context) (*model.Order, error) {
+func (or *OrdersRepository) GetByID(ctx context.Context, id, userID int32, role model.UserRole) (*model.Order, error) {
 	query := `
 		SELECT *
 		FROM orders.orders
@@ -146,11 +151,11 @@ func (or *OrdersRepository) GetByID(id, userID int32, role model.UserRole, ctx c
 	return &order, nil
 }
 
-func (or *OrdersRepository) Delete(id int32, userID int32, ctx context.Context) (*model.Order, error) {
+func (or *OrdersRepository) Delete(ctx context.Context, id int32, userID int32) (*model.Order, error) {
 	var lastErr error
 
 	for i := 0; i < maxRetries; i++ {
-		order, err := or.tryDeleteOrder(id, userID, ctx)
+		order, err := or.tryDeleteOrder(ctx, id, userID)
 		if err == nil {
 			return order, nil
 		}
@@ -166,7 +171,12 @@ func (or *OrdersRepository) Delete(id int32, userID int32, ctx context.Context) 
 	return nil, fmt.Errorf("не удалось удалить заказ после %d попыток: %w", maxRetries, lastErr)
 }
 
-func (or *OrdersRepository) Update(id int32, orderRequest model.OrderRequestBody, userID int32, ctx context.Context) (*model.Order, error) {
+func (or *OrdersRepository) Update(
+	ctx context.Context,
+	id int32,
+	orderRequest model.OrderRequestBody,
+	userID int32,
+) (*model.Order, error) {
 	if len(orderRequest.Products) == 0 {
 		return nil, fmt.Errorf("список товаров не может быть пустым")
 	}
@@ -174,7 +184,7 @@ func (or *OrdersRepository) Update(id int32, orderRequest model.OrderRequestBody
 	var lastErr error
 
 	for i := 0; i < maxRetries; i++ {
-		order, err := or.tryUpdateOrder(id, orderRequest, userID, ctx)
+		order, err := or.tryUpdateOrder(ctx, id, orderRequest, userID)
 		if err == nil {
 			return order, nil
 		}
@@ -194,7 +204,11 @@ func (or *OrdersRepository) WriteLog(result any, operation, status, tableName st
 	return WriteLog(result, operation, status, tableName, or.redis)
 }
 
-func (or *OrdersRepository) tryCreateOrder(request model.OrderRequestBody, userID int32, ctx context.Context) (*model.Order, error) {
+func (or *OrdersRepository) tryCreateOrder(
+	ctx context.Context,
+	request model.OrderRequestBody,
+	userID int32,
+) (*model.Order, error) {
 	tx, err := or.db.BeginTxx(ctx, &sql.TxOptions{
 		Isolation: sql.LevelSerializable,
 	})
@@ -312,7 +326,12 @@ func (or *OrdersRepository) tryCreateOrder(request model.OrderRequestBody, userI
 	return &order, nil
 }
 
-func (or *OrdersRepository) tryUpdateOrder(id int32, orderRequest model.OrderRequestBody, userID int32, ctx context.Context) (*model.Order, error) {
+func (or *OrdersRepository) tryUpdateOrder(
+	ctx context.Context,
+	id int32,
+	orderRequest model.OrderRequestBody,
+	userID int32,
+) (*model.Order, error) {
 	tx, err := or.db.BeginTxx(ctx, &sql.TxOptions{
 		Isolation: sql.LevelSerializable,
 	})
@@ -321,46 +340,101 @@ func (or *OrdersRepository) tryUpdateOrder(id int32, orderRequest model.OrderReq
 	}
 	defer tx.Rollback()
 
-	// 1. Получаем текущий заказ
+	order, err := or.getOrderForUpdate(ctx, tx, id, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	currentProducts, err := or.getCurrentOrderProducts(ctx, tx, order.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = or.processProductChanges(ctx, tx, order.ID, currentProducts, orderRequest.Products)
+	if err != nil {
+		return nil, err
+	}
+
+	err = or.addNewProducts(ctx, tx, order.ID, currentProducts, orderRequest.Products)
+	if err != nil {
+		return nil, err
+	}
+
+	err = or.updateOrderModifiedDate(ctx, tx, order.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	updatedOrder, err := or.getUpdatedOrder(ctx, tx, order.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("ошибка фиксации транзакции: %w", err)
+	}
+
+	return updatedOrder, nil
+}
+
+func (or *OrdersRepository) getOrderForUpdate(
+	ctx context.Context,
+	tx *sqlx.Tx,
+	id, userID int32,
+) (*model.Order, error) {
 	var order model.Order
-	err = tx.GetContext(ctx, &order, `
-		SELECT *
-		FROM orders.orders 
-		WHERE id = $1 AND user_id = $2
-		FOR UPDATE
-	`, id, userID)
+	err := tx.GetContext(ctx, &order, `
+        SELECT *
+        FROM orders.orders 
+        WHERE id = $1 AND user_id = $2
+        FOR UPDATE
+    `, id, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("заказ не найден или не принадлежит пользователю")
 		}
 		return nil, fmt.Errorf("ошибка получения заказа: %w", err)
 	}
+	return &order, nil
+}
 
-	// 2. Получаем текущие товары в заказе
-	var currentProducts []model.OrderProduct
-	err = tx.SelectContext(ctx, &currentProducts, `
-        SELECT product_id, quantity, sell_price
-        FROM orders.order_products
-        WHERE order_id = $1
-    `, order.ID)
+func (or *OrdersRepository) getCurrentOrderProducts(
+	ctx context.Context,
+	tx *sqlx.Tx,
+	orderID int32,
+) ([]model.OrderProduct, error) {
+	var products []model.OrderProduct
+	err := tx.SelectContext(ctx, &products, `
+		SELECT product_id, quantity, sell_price
+		FROM orders.order_products
+		WHERE order_id = $1
+	`, orderID)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка получения текущих товаров: %w", err)
 	}
+	return products, nil
+}
 
-	// 3. Сравниваем старые и новые товары
-	oldProducts := make(map[int32]model.OrderProduct)
+func (or *OrdersRepository) processProductChanges(
+	ctx context.Context,
+	tx *sqlx.Tx,
+	orderID int32,
+	currentProducts []model.OrderProduct,
+	newProducts []model.OrderProduct,
+) error {
+	oldProductsMap := make(map[int32]model.OrderProduct)
 	for _, p := range currentProducts {
-		oldProducts[p.ProductID] = p
+		oldProductsMap[p.ProductID] = p
 	}
 
-	newProducts := make(map[int32]model.OrderProduct)
-	for _, p := range orderRequest.Products {
-		newProducts[p.ProductID] = p
+	newProductsMap := make(map[int32]model.OrderProduct)
+	for _, p := range newProducts {
+		newProductsMap[p.ProductID] = p
 	}
 
 	// 4. Обрабатываем изменения товаров
-	for productID, oldProduct := range oldProducts {
-		newProduct, exists := newProducts[productID]
+	for productID, oldProduct := range oldProductsMap {
+		newProduct, exists := newProductsMap[productID]
 
 		// Товар удален из заказа - возвращаем остатки
 		if !exists {
@@ -370,16 +444,16 @@ func (or *OrdersRepository) tryUpdateOrder(id int32, orderRequest model.OrderReq
 				WHERE id = $2
 			`, oldProduct.Quantity, productID)
 			if err != nil {
-				return nil, fmt.Errorf("ошибка возврата товара %d: %w", productID, err)
+				return fmt.Errorf("ошибка возврата товара %d: %w", productID, err)
 			}
 
 			// Удаляем товар из заказа
 			_, err = tx.ExecContext(ctx, `
 				DELETE FROM orders.order_products
 				WHERE order_id = $1 AND product_id = $2
-			`, order.ID, productID)
+			`, orderID, productID)
 			if err != nil {
-				return nil, fmt.Errorf("ошибка удаления товара %d: %w", productID, err)
+				return fmt.Errorf("ошибка удаления товара %d: %w", productID, err)
 			}
 			continue
 		}
@@ -393,7 +467,7 @@ func (or *OrdersRepository) tryUpdateOrder(id int32, orderRequest model.OrderReq
 				WHERE id = $2
 			`, diff, productID)
 			if err != nil {
-				return nil, fmt.Errorf("ошибка обновления количества товара %d: %w", productID, err)
+				return fmt.Errorf("ошибка обновления количества товара %d: %w", productID, err)
 			}
 
 			// Обновляем количество в заказе
@@ -401,28 +475,41 @@ func (or *OrdersRepository) tryUpdateOrder(id int32, orderRequest model.OrderReq
 				UPDATE orders.order_products
 				SET quantity = $1, sell_price = $2
 				WHERE order_id = $3 AND product_id = $4
-			`, newProduct.Quantity, newProduct.SellPrice, order.ID, productID)
+			`, newProduct.Quantity, newProduct.SellPrice, orderID, productID)
 			if err != nil {
-				return nil, fmt.Errorf("ошибка обновления товара %d в заказе: %w", productID, err)
+				return fmt.Errorf("ошибка обновления товара %d в заказе: %w", productID, err)
 			}
 		}
 	}
+	return nil
+}
 
-	// 5. Добавляем новые товары
-	for productID, newProduct := range newProducts {
-		if _, exists := oldProducts[productID]; !exists {
+func (or *OrdersRepository) addNewProducts(
+	ctx context.Context,
+	tx *sqlx.Tx,
+	orderID int32,
+	currentProducts []model.OrderProduct,
+	newProducts []model.OrderProduct,
+) error {
+	oldProductsMap := make(map[int32]model.OrderProduct)
+	for _, p := range currentProducts {
+		oldProductsMap[p.ProductID] = p
+	}
+
+	for _, newProduct := range newProducts {
+		if _, exists := oldProductsMap[newProduct.ProductID]; !exists {
 			// Проверяем доступность товара
 			var available int32
 			err := tx.GetContext(ctx, &available, `
 				SELECT quantity FROM products.products WHERE id = $1
-			`, productID)
+			`, newProduct.ProductID)
 			if err != nil {
-				return nil, fmt.Errorf("ошибка проверки товара %d: %w", productID, err)
+				return fmt.Errorf("ошибка проверки товара %d: %w", newProduct.ProductID, err)
 			}
 
 			if available < newProduct.Quantity {
-				return nil, fmt.Errorf("недостаточно товара %d (доступно: %d, требуется: %d)",
-					productID, available, newProduct.Quantity)
+				return fmt.Errorf("недостаточно товара %d (доступно: %d, требуется: %d)",
+					newProduct.ProductID, available, newProduct.Quantity)
 			}
 
 			// Резервируем товар
@@ -430,9 +517,9 @@ func (or *OrdersRepository) tryUpdateOrder(id int32, orderRequest model.OrderReq
 				UPDATE products.products
 				SET quantity = quantity - $1
 				WHERE id = $2
-			`, newProduct.Quantity, productID)
+			`, newProduct.Quantity, newProduct.ProductID)
 			if err != nil {
-				return nil, fmt.Errorf("ошибка резервирования товара %d: %w", productID, err)
+				return fmt.Errorf("ошибка резервирования товара %d: %w", newProduct.ProductID, err)
 			}
 
 			// Добавляем в заказ
@@ -440,55 +527,55 @@ func (or *OrdersRepository) tryUpdateOrder(id int32, orderRequest model.OrderReq
 				INSERT INTO orders.order_products
 				(order_id, product_id, quantity, sell_price)
 				VALUES ($1, $2, $3, $4)
-			`, order.ID, productID, newProduct.Quantity, newProduct.SellPrice)
+			`, orderID, newProduct.ProductID, newProduct.Quantity, newProduct.SellPrice)
 			if err != nil {
-				return nil, fmt.Errorf("ошибка добавления товара %d: %w", productID, err)
+				return fmt.Errorf("ошибка добавления товара %d: %w", newProduct.ProductID, err)
 			}
 		}
 	}
 
-	// 6. Обновляем дату изменения
-	_, err = tx.ExecContext(ctx, `
+	return nil
+}
+
+func (or *OrdersRepository) updateOrderModifiedDate(ctx context.Context, tx *sqlx.Tx, orderID int32) error {
+	_, err := tx.ExecContext(ctx, `
 		UPDATE orders.orders
 		SET last_modified_date = NOW()
 		WHERE id = $1
-	`, order.ID)
+	`, orderID)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка обновления даты заказа: %w", err)
+		return fmt.Errorf("ошибка обновления даты заказа: %w", err)
 	}
+	return nil
+}
 
-	// 7. Получаем обновленный заказ
-	err = tx.GetContext(ctx, &order, `
+func (or *OrdersRepository) getUpdatedOrder(ctx context.Context, tx *sqlx.Tx, orderID int32) (*model.Order, error) {
+	var order model.Order
+	err := tx.GetContext(ctx, &order, `
 		SELECT *
 		FROM orders.orders 
 		WHERE id = $1
-	`, order.ID)
+	`, orderID)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка получения обновленного заказа: %w", err)
 	}
 
-	// 8. Получаем обновленные товары
 	var products []model.Product
 	err = tx.SelectContext(ctx, &products, `
 		SELECT p.id, p.code, p.name, op.quantity, op.sell_price
 		FROM orders.order_products op
 		JOIN products.products p ON op.product_id = p.id
 		WHERE op.order_id = $1
-	`, order.ID)
+	`, orderID)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка получения товаров заказа: %w", err)
 	}
 
 	order.Products = products
-
-	if err := tx.Commit(); err != nil {
-		return nil, fmt.Errorf("ошибка фиксации транзакции: %w", err)
-	}
-
 	return &order, nil
 }
 
-func (or *OrdersRepository) tryDeleteOrder(orderID int32, userID int32, ctx context.Context) (*model.Order, error) {
+func (or *OrdersRepository) tryDeleteOrder(ctx context.Context, orderID int32, userID int32) (*model.Order, error) {
 	tx, err := or.db.BeginTxx(ctx, &sql.TxOptions{
 		Isolation: sql.LevelSerializable,
 	})

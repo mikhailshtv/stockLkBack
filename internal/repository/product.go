@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"golang/stockLkBack/internal/model"
+	"github.com/mikhailshtv/stockLkBack/internal/model"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/jmoiron/sqlx"
@@ -21,14 +21,14 @@ func NewProductsRepository(db *sqlx.DB, redis *redis.Client) *ProductsRepository
 	return &ProductsRepository{db: db, redis: redis}
 }
 
-func (pr *ProductsRepository) Create(product model.Product, ctx context.Context) (*model.Product, error) {
+func (pr *ProductsRepository) Create(ctx context.Context, product model.Product) (*model.Product, error) {
 	const query = `
 		INSERT INTO products.products (
-				code,
-				name,
-				quantity,
-				purchase_price,
-				sell_price
+			code,
+			name,
+			quantity,
+			purchase_price,
+			sell_price
 		) VALUES ($1, $2, $3, $4, $5)
 		RETURNING id
 	`
@@ -67,7 +67,7 @@ func (pr *ProductsRepository) GetAll(ctx context.Context) ([]model.Product, erro
 	return products, nil
 }
 
-func (pr *ProductsRepository) GetByID(id int32, ctx context.Context) (*model.Product, error) {
+func (pr *ProductsRepository) GetByID(ctx context.Context, id int32) (*model.Product, error) {
 	var product model.Product
 	err := pr.db.GetContext(ctx, &product,
 		"SELECT * FROM products.products WHERE id = $1", id)
@@ -80,14 +80,14 @@ func (pr *ProductsRepository) GetByID(id int32, ctx context.Context) (*model.Pro
 	return &product, nil
 }
 
-func (pr *ProductsRepository) Delete(id int32, ctx context.Context) (*model.Product, error) {
+func (pr *ProductsRepository) Delete(ctx context.Context, id int32) (*model.Product, error) {
 	const query = `
-        WITH deleted AS (
-            DELETE FROM products.products 
-            WHERE id = $1
-            RETURNING *
-        )
-        SELECT * FROM deleted
+		WITH deleted AS (
+			DELETE FROM products.products 
+			WHERE id = $1
+			RETURNING *
+		)
+		SELECT * FROM deleted
 	`
 
 	deletedProduct := model.Product{}
@@ -102,7 +102,7 @@ func (pr *ProductsRepository) Delete(id int32, ctx context.Context) (*model.Prod
 	return &deletedProduct, nil
 }
 
-func (pr *ProductsRepository) Update(id int32, product model.Product, ctx context.Context) (*model.Product, error) {
+func (pr *ProductsRepository) Update(ctx context.Context, id int32, product model.Product) (*model.Product, error) {
 	const query = `
 		UPDATE products.products SET
 			code = $1,
@@ -139,6 +139,6 @@ func (pr *ProductsRepository) Update(id int32, product model.Product, ctx contex
 	return &updatedProduct, nil
 }
 
-func (or *ProductsRepository) WriteLog(result any, operation, status, tableName string) (int64, error) {
-	return WriteLog(result, operation, status, tableName, or.redis)
+func (pr *ProductsRepository) WriteLog(result any, operation, status, tableName string) (int64, error) {
+	return WriteLog(result, operation, status, tableName, pr.redis)
 }

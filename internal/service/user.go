@@ -3,9 +3,10 @@ package service
 import (
 	"context"
 	"errors"
-	"golang/stockLkBack/internal/model"
-	"golang/stockLkBack/internal/repository"
 	"log"
+
+	"github.com/mikhailshtv/stockLkBack/internal/model"
+	"github.com/mikhailshtv/stockLkBack/internal/repository"
 )
 
 const (
@@ -17,7 +18,7 @@ type UsersService struct {
 	ctx  context.Context
 }
 
-func NewUsersService(repo repository.User, ctx context.Context) *UsersService {
+func NewUsersService(ctx context.Context, repo repository.User) *UsersService {
 	return &UsersService{repo: repo, ctx: ctx}
 }
 
@@ -35,7 +36,7 @@ func (s *UsersService) Create(userRequest model.UserCreateBody) (*model.User, er
 	} else {
 		return nil, errors.New("ошибка подтверждения пароля")
 	}
-	createdUser, err := s.repo.Create(user, s.ctx)
+	createdUser, err := s.repo.Create(s.ctx, user)
 	var result any
 	var status string
 	if err != nil {
@@ -58,11 +59,11 @@ func (s *UsersService) GetAll() ([]model.User, error) {
 }
 
 func (s *UsersService) GetByID(id int) (*model.User, error) {
-	return s.repo.GetByID(id, s.ctx)
+	return s.repo.GetByID(s.ctx, id)
 }
 
 func (s *UsersService) Delete(id int) error {
-	delitedUser, err := s.repo.Delete(id, s.ctx)
+	delitedUser, err := s.repo.Delete(s.ctx, id)
 	var result any
 	var status string
 	if err != nil {
@@ -81,7 +82,7 @@ func (s *UsersService) Delete(id int) error {
 }
 
 func (s *UsersService) Update(id int, user model.UserEditBody) (*model.User, error) {
-	updatedUser, err := s.repo.Update(id, user, s.ctx)
+	updatedUser, err := s.repo.Update(s.ctx, id, user)
 	var result any
 	var status string
 	if err != nil {
@@ -100,13 +101,13 @@ func (s *UsersService) Update(id int, user model.UserEditBody) (*model.User, err
 }
 
 func (s *UsersService) Login(user model.LoginRequest) (*model.TokenSuccess, error) {
-	return s.repo.Login(user, s.ctx)
+	return s.repo.Login(s.ctx, user)
 }
 
 func (s *UsersService) ChangeUserRole(id int, userRoleReq model.UserRoleBody) (*model.User, error) {
-	return s.repo.ChangeUserRole(id, userRoleReq, s.ctx)
+	return s.repo.ChangeUserRole(s.ctx, id, userRoleReq)
 }
 
 func (s *UsersService) ChangePassword(id int, changePassworReq model.UserChangePasswordBody) (*model.Success, error) {
-	return s.repo.ChangePassword(id, changePassworReq, s.ctx)
+	return s.repo.ChangePassword(s.ctx, id, changePassworReq)
 }

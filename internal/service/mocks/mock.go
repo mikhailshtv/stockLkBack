@@ -5,10 +5,10 @@
 package mock_service
 
 import (
-	model "golang/stockLkBack/internal/model"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	model "github.com/mikhailshtv/stockLkBack/internal/model"
 )
 
 // MockOrder is a mock of Order interface.

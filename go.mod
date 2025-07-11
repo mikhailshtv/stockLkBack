@@ -1,4 +1,4 @@
-module golang/stockLkBack
+module github.com/mikhailshtv/stockLkBack
 
 go 1.24.0
 

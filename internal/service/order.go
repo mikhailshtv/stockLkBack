@@ -4,8 +4,8 @@ import (
 	"context"
 	"log"
 
-	"golang/stockLkBack/internal/model"
-	"golang/stockLkBack/internal/repository"
+	"github.com/mikhailshtv/stockLkBack/internal/model"
+	"github.com/mikhailshtv/stockLkBack/internal/repository"
 )
 
 const (
@@ -19,12 +19,12 @@ type OrdersService struct {
 	ctx  context.Context
 }
 
-func NewOrdersService(repo repository.Order, ctx context.Context) *OrdersService {
+func NewOrdersService(ctx context.Context, repo repository.Order) *OrdersService {
 	return &OrdersService{repo: repo, ctx: ctx}
 }
 
 func (s *OrdersService) Create(order model.OrderRequestBody, userID int32) (*model.Order, error) {
-	createdOrder, err := s.repo.Create(order, userID, s.ctx)
+	createdOrder, err := s.repo.Create(s.ctx, order, userID)
 	var result any
 	var status string
 	if err != nil {
@@ -43,15 +43,15 @@ func (s *OrdersService) Create(order model.OrderRequestBody, userID int32) (*mod
 }
 
 func (s *OrdersService) GetAll(userID int32, role model.UserRole) ([]model.Order, error) {
-	return s.repo.GetAll(userID, role, s.ctx)
+	return s.repo.GetAll(s.ctx, userID, role)
 }
 
 func (s *OrdersService) GetByID(id, userID int32, role model.UserRole) (*model.Order, error) {
-	return s.repo.GetByID(id, userID, role, s.ctx)
+	return s.repo.GetByID(s.ctx, id, userID, role)
 }
 
 func (s *OrdersService) Delete(id int32, userID int32) error {
-	delitedOrder, err := s.repo.Delete(id, userID, s.ctx)
+	delitedOrder, err := s.repo.Delete(s.ctx, id, userID)
 	var result any
 	var status string
 	if err != nil {
@@ -70,7 +70,7 @@ func (s *OrdersService) Delete(id int32, userID int32) error {
 }
 
 func (s *OrdersService) Update(id int32, order model.OrderRequestBody, userID int32) (*model.Order, error) {
-	updatedOrder, err := s.repo.Update(id, order, userID, s.ctx)
+	updatedOrder, err := s.repo.Update(s.ctx, id, order, userID)
 	var result any
 	var status string
 	if err != nil {

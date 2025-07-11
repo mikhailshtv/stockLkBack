@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"golang/stockLkBack/internal/model"
 	"time"
+
+	"github.com/mikhailshtv/stockLkBack/internal/model"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/jmoiron/sqlx"
@@ -18,32 +19,32 @@ const NotFoundErrorMessage = "элемент не найден"
 //go:generate mockgen -source=repository.go -destination=mocks/repository.go -package=mocks
 
 type Order interface {
-	Create(order model.OrderRequestBody, userID int32, ctx context.Context) (*model.Order, error)
-	GetAll(userID int32, role model.UserRole, ctx context.Context) ([]model.Order, error)
-	GetByID(id, userID int32, role model.UserRole, ctx context.Context) (*model.Order, error)
-	Delete(id int32, userId int32, ctx context.Context) (*model.Order, error)
-	Update(id int32, orderReq model.OrderRequestBody, userID int32, ctx context.Context) (*model.Order, error)
+	Create(ctx context.Context, order model.OrderRequestBody, userID int32) (*model.Order, error)
+	GetAll(ctx context.Context, userID int32, role model.UserRole) ([]model.Order, error)
+	GetByID(ctx context.Context, id, userID int32, role model.UserRole) (*model.Order, error)
+	Delete(ctx context.Context, id int32, userID int32) (*model.Order, error)
+	Update(ctx context.Context, id int32, orderReq model.OrderRequestBody, userID int32) (*model.Order, error)
 	WriteLog(result any, operation, status, tableName string) (int64, error)
 }
 
 type Product interface {
-	Create(product model.Product, ctx context.Context) (*model.Product, error)
+	Create(ctx context.Context, product model.Product) (*model.Product, error)
 	GetAll(ctx context.Context) ([]model.Product, error)
-	GetByID(id int32, ctx context.Context) (*model.Product, error)
-	Delete(id int32, ctx context.Context) (*model.Product, error)
-	Update(id int32, product model.Product, ctx context.Context) (*model.Product, error)
+	GetByID(ctx context.Context, id int32) (*model.Product, error)
+	Delete(ctx context.Context, id int32) (*model.Product, error)
+	Update(ctx context.Context, id int32, product model.Product) (*model.Product, error)
 	WriteLog(result any, operation, status, tableName string) (int64, error)
 }
 
 type User interface {
-	Create(user model.User, ctx context.Context) (*model.User, error)
+	Create(ctx context.Context, user model.User) (*model.User, error)
 	GetAll(ctx context.Context) ([]model.User, error)
-	GetByID(id int, ctx context.Context) (*model.User, error)
-	Delete(id int, ctx context.Context) (*model.User, error)
-	Update(id int, user model.UserEditBody, ctx context.Context) (*model.User, error)
-	Login(user model.LoginRequest, ctx context.Context) (*model.TokenSuccess, error)
-	ChangeUserRole(id int, userRoleReq model.UserRoleBody, ctx context.Context) (*model.User, error)
-	ChangePassword(id int, changePassworReq model.UserChangePasswordBody, ctx context.Context) (*model.Success, error)
+	GetByID(ctx context.Context, id int) (*model.User, error)
+	Delete(ctx context.Context, id int) (*model.User, error)
+	Update(ctx context.Context, id int, user model.UserEditBody) (*model.User, error)
+	Login(ctx context.Context, user model.LoginRequest) (*model.TokenSuccess, error)
+	ChangeUserRole(ctx context.Context, id int, userRoleReq model.UserRoleBody) (*model.User, error)
+	ChangePassword(ctx context.Context, id int, changePassworReq model.UserChangePasswordBody) (*model.Success, error)
 	WriteLog(result any, operation, status, tableName string) (int64, error)
 }
 

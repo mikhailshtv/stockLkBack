@@ -4,8 +4,8 @@ import (
 	"context"
 	"strconv"
 
-	"golang/stockLkBack/internal/model"
-	"golang/stockLkBack/internal/repository"
+	"github.com/mikhailshtv/stockLkBack/internal/model"
+	"github.com/mikhailshtv/stockLkBack/internal/repository"
 )
 
 //go:generate mockgen -source=service.go -destination=mocks/mock.go
@@ -43,11 +43,11 @@ type Service struct {
 	User
 }
 
-func NewService(repo *repository.Repository, ctx context.Context) *Service {
+func NewService(ctx context.Context, repo *repository.Repository) *Service {
 	return &Service{
-		Order:   NewOrdersService(repo.Order, ctx),
-		Product: NewProductsService(repo.Product, ctx),
-		User:    NewUsersService(repo.User, ctx),
+		Order:   NewOrdersService(ctx, repo.Order),
+		Product: NewProductsService(ctx, repo.Product),
+		User:    NewUsersService(ctx, repo.User),
 	}
 }
 

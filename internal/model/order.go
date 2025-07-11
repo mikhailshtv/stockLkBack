@@ -30,6 +30,7 @@ var (
 )
 
 // сделал конкретные int32 из-за protobuf и линтера (gosec).
+
 type Order struct {
 	ID               int32       `json:"id" bson:"_id,omitempty" db:"id"`
 	Number           int32       `json:"number" bson:"number" db:"order_number"`
@@ -67,9 +68,10 @@ func (os *OrderStatus) Scan(value interface{}) error {
 	default:
 		return fmt.Errorf("неизвестный статус: %s", str)
 	}
+
 	return nil
 }
 
-func (s OrderStatus) Value() (driver.Value, error) {
-	return s.Key, nil
+func (os OrderStatus) Value() (driver.Value, error) {
+	return os.Key, nil
 }

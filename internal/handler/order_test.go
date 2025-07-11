@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"golang/stockLkBack/internal/model"
-	"golang/stockLkBack/internal/service"
-	mock_service "golang/stockLkBack/internal/service/mocks"
+	"github.com/mikhailshtv/stockLkBack/internal/model"
+	"github.com/mikhailshtv/stockLkBack/internal/service"
+	mock_service "github.com/mikhailshtv/stockLkBack/internal/service/mocks"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"

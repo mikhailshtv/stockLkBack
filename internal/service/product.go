@@ -2,9 +2,10 @@ package service
 
 import (
 	"context"
-	"golang/stockLkBack/internal/model"
-	"golang/stockLkBack/internal/repository"
 	"log"
+
+	"github.com/mikhailshtv/stockLkBack/internal/model"
+	"github.com/mikhailshtv/stockLkBack/internal/repository"
 )
 
 const (
@@ -16,12 +17,12 @@ type ProductsService struct {
 	ctx  context.Context
 }
 
-func NewProductsService(repo repository.Product, ctx context.Context) *ProductsService {
+func NewProductsService(ctx context.Context, repo repository.Product) *ProductsService {
 	return &ProductsService{repo: repo, ctx: ctx}
 }
 
 func (s *ProductsService) Create(product model.Product) (*model.Product, error) {
-	createdProduct, err := s.repo.Create(product, s.ctx)
+	createdProduct, err := s.repo.Create(s.ctx, product)
 	var result any
 	var status string
 	if err != nil {
@@ -44,11 +45,11 @@ func (s *ProductsService) GetAll() ([]model.Product, error) {
 }
 
 func (s *ProductsService) GetByID(id int32) (*model.Product, error) {
-	return s.repo.GetByID(id, s.ctx)
+	return s.repo.GetByID(s.ctx, id)
 }
 
 func (s *ProductsService) Delete(id int32) error {
-	delitedProduct, err := s.repo.Delete(id, s.ctx)
+	delitedProduct, err := s.repo.Delete(s.ctx, id)
 	var result any
 	var status string
 	if err != nil {
@@ -67,7 +68,7 @@ func (s *ProductsService) Delete(id int32) error {
 }
 
 func (s *ProductsService) Update(id int32, product model.Product) (*model.Product, error) {
-	updatedProduct, err := s.repo.Update(id, product, s.ctx)
+	updatedProduct, err := s.repo.Update(s.ctx, id, product)
 	var result any
 	var status string
 	if err != nil {

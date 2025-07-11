@@ -66,6 +66,7 @@ type LoginRequest struct {
 }
 
 // Claims Структура для JWT токена.
+
 type Claims struct {
 	Login                string   `json:"login"`
 	Role                 UserRole `json:"role"`

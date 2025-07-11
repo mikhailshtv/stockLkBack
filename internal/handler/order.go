@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"fmt"
+	"math"
 	"net/http"
 	"strings"
 
-	"golang/stockLkBack/internal/model"
-	"golang/stockLkBack/internal/service"
+	"github.com/mikhailshtv/stockLkBack/internal/model"
+	"github.com/mikhailshtv/stockLkBack/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -30,6 +32,18 @@ func (h *Handler) CreateOrder(ctx *gin.Context) {
 		return
 	}
 
+	if userID > math.MaxInt32 || userID < math.MinInt32 {
+		ctx.JSON(
+			http.StatusBadRequest,
+			gin.H{
+				"error": fmt.Sprintf(
+					"идентификатор пользователя %d превышает допустимый диапазон типа int32",
+					userID,
+				),
+			},
+		)
+		return
+	}
 	order, err := h.Services.Order.Create(orderReq, int32(userID))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -65,6 +79,18 @@ func (h *Handler) EditOrder(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	if userID > math.MaxInt32 || userID < math.MinInt32 {
+		ctx.JSON(
+			http.StatusBadRequest,
+			gin.H{
+				"error": fmt.Sprintf(
+					"идентификатор пользователя %d превышает допустимый диапазон типа int32",
+					userID,
+				),
+			},
+		)
+		return
+	}
 	orderResult, err := h.Services.Order.Update(id, order, int32(userID))
 	if err != nil {
 		if strings.Contains(err.Error(), "заказ не найден") {
@@ -95,6 +121,18 @@ func (h *Handler) ListOrders(ctx *gin.Context) {
 		return
 	}
 
+	if userID > math.MaxInt32 || userID < math.MinInt32 {
+		ctx.JSON(
+			http.StatusBadRequest,
+			gin.H{
+				"error": fmt.Sprintf(
+					"идентификатор пользователя %d превышает допустимый диапазон типа int32",
+					userID,
+				),
+			},
+		)
+		return
+	}
 	orders, err := h.Services.Order.GetAll(int32(userID), role.(model.UserRole))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -128,6 +166,18 @@ func (h *Handler) GetOrderByID(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID заказа"})
 		return
 	}
+	if userID > math.MaxInt32 || userID < math.MinInt32 {
+		ctx.JSON(
+			http.StatusBadRequest,
+			gin.H{
+				"error": fmt.Sprintf(
+					"идентификатор пользователя %d превышает допустимый диапазон типа int32",
+					userID,
+				),
+			},
+		)
+		return
+	}
 	order, err := h.Services.Order.GetByID(id, int32(userID), role.(model.UserRole))
 	if err != nil {
 		if strings.Contains(err.Error(), "заказ не найден") {
@@ -158,6 +208,18 @@ func (h *Handler) DeleteOrder(ctx *gin.Context) {
 	id, err := service.ParseInt32(idStr)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID заказа"})
+		return
+	}
+	if userID > math.MaxInt32 || userID < math.MinInt32 {
+		ctx.JSON(
+			http.StatusBadRequest,
+			gin.H{
+				"error": fmt.Sprintf(
+					"идентификатор пользователя %d превышает допустимый диапазон типа int32",
+					userID,
+				),
+			},
+		)
 		return
 	}
 	err = h.Services.Order.Delete(id, int32(userID))

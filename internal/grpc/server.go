@@ -8,9 +8,9 @@ import (
 	"net"
 	"time"
 
-	"golang/stockLkBack/internal/handler"
-	"golang/stockLkBack/internal/model"
-	"golang/stockLkBack/internal/repository"
+	"github.com/mikhailshtv/stockLkBack/internal/handler"
+	"github.com/mikhailshtv/stockLkBack/internal/model"
+	"github.com/mikhailshtv/stockLkBack/internal/repository"
 
 	"github.com/mikhailshtv/proto_api/pkg/grpc/v1/orders_api"
 	"google.golang.org/grpc"

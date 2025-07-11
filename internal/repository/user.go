@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 
-	"golang/stockLkBack/internal/model"
-	"golang/stockLkBack/internal/utils/jwtgen"
+	"github.com/mikhailshtv/stockLkBack/internal/model"
+	"github.com/mikhailshtv/stockLkBack/internal/utils/jwtgen"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/jmoiron/sqlx"
@@ -25,7 +25,7 @@ func NewUsersRepository(db *sqlx.DB, redis *redis.Client) *UsersRepository {
 	return &UsersRepository{db: db, redis: redis}
 }
 
-func (ur *UsersRepository) Create(user model.User, ctx context.Context) (*model.User, error) {
+func (ur *UsersRepository) Create(ctx context.Context, user model.User) (*model.User, error) {
 	const query = `
 		INSERT INTO users.users (
 			login, 
@@ -81,22 +81,21 @@ func (ur *UsersRepository) GetAll(ctx context.Context) ([]model.User, error) {
 	}
 
 	return users, nil
-
 }
 
-func (ur *UsersRepository) GetByID(id int, ctx context.Context) (*model.User, error) {
+func (ur *UsersRepository) GetByID(ctx context.Context, id int) (*model.User, error) {
 	const query = `
-        SELECT 
-            id,
-            login,
-            first_name,
-            last_name,
-            email,
-            role
-        FROM users.users
-        WHERE id = $1
-        LIMIT 1
-    `
+		SELECT 
+			id,
+			login,
+			first_name,
+			last_name,
+			email,
+			role
+		FROM users.users
+		WHERE id = $1
+		LIMIT 1
+	`
 
 	var user model.User
 	err := ur.db.QueryRowxContext(ctx, query, id).StructScan(&user)
@@ -110,14 +109,14 @@ func (ur *UsersRepository) GetByID(id int, ctx context.Context) (*model.User, er
 	return &user, nil
 }
 
-func (ur *UsersRepository) Delete(id int, ctx context.Context) (*model.User, error) {
+func (ur *UsersRepository) Delete(ctx context.Context, id int) (*model.User, error) {
 	const query = `
-        WITH deleted AS (
-            DELETE FROM users.users 
-            WHERE id = $1
-            RETURNING *
-        )
-        SELECT * FROM deleted
+		WITH deleted AS (
+			DELETE FROM users.users 
+			WHERE id = $1
+			RETURNING *
+		)
+		SELECT * FROM deleted
 	`
 
 	deletedUser := model.User{}
@@ -132,8 +131,8 @@ func (ur *UsersRepository) Delete(id int, ctx context.Context) (*model.User, err
 	return &deletedUser, nil
 }
 
-func (ur *UsersRepository) Update(id int, userReq model.UserEditBody, ctx context.Context) (*model.User, error) {
-	existingUser, err := ur.GetByID(id, ctx)
+func (ur *UsersRepository) Update(ctx context.Context, id int, userReq model.UserEditBody) (*model.User, error) {
+	existingUser, err := ur.GetByID(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("пользователь не найден: %w", err)
 	}
@@ -149,13 +148,13 @@ func (ur *UsersRepository) Update(id int, userReq model.UserEditBody, ctx contex
 	}
 
 	const query = `
-        UPDATE users.users SET
-            first_name = $1,
-            last_name = $2,
-            email = $3
-        WHERE id = $4
-        RETURNING *
-    `
+		UPDATE users.users SET
+			first_name = $1,
+			last_name = $2,
+			email = $3
+		WHERE id = $4
+		RETURNING *
+	`
 
 	updatedUser := model.User{}
 	err = ur.db.QueryRowxContext(
@@ -180,18 +179,18 @@ func (ur *UsersRepository) Update(id int, userReq model.UserEditBody, ctx contex
 	return &updatedUser, nil
 }
 
-func (ur *UsersRepository) Login(userReq model.LoginRequest, ctx context.Context) (*model.TokenSuccess, error) {
+func (ur *UsersRepository) Login(ctx context.Context, userReq model.LoginRequest) (*model.TokenSuccess, error) {
 	const query = `
-        SELECT
-						id,
-            login,
-            password_hash,
-            email,
-            role
-        FROM users.users
-        WHERE login = $1 OR email = $1
-        LIMIT 1
-    `
+		SELECT
+			id,
+			login,
+			password_hash,
+			email,
+			role
+		FROM users.users
+		WHERE login = $1 OR email = $1
+		LIMIT 1
+	`
 
 	var user model.User
 	err := ur.db.QueryRowxContext(ctx, query, userReq.Login).StructScan(&user)
@@ -214,13 +213,17 @@ func (ur *UsersRepository) Login(userReq model.LoginRequest, ctx context.Context
 	return nil, errors.New("логин или пароль пользователя недействителен")
 }
 
-func (ur *UsersRepository) ChangeUserRole(id int, userRoleReq model.UserRoleBody, ctx context.Context) (*model.User, error) {
+func (ur *UsersRepository) ChangeUserRole(
+	ctx context.Context,
+	id int,
+	userRoleReq model.UserRoleBody,
+) (*model.User, error) {
 	if !userRoleReq.Role.Valid() {
 		return nil, fmt.Errorf("недопустимая роль: %s", userRoleReq.Role)
 	}
 	const query = `
 		UPDATE users.users SET
-				role = $1
+			role = $1
 		WHERE id = $2
 		RETURNING *
 	`
@@ -236,9 +239,9 @@ func (ur *UsersRepository) ChangeUserRole(id int, userRoleReq model.UserRoleBody
 }
 
 func (ur *UsersRepository) ChangePassword(
+	ctx context.Context,
 	id int,
 	changePassworReq model.UserChangePasswordBody,
-	ctx context.Context,
 ) (*model.Success, error) {
 	if changePassworReq.Password != changePassworReq.PasswordConfirm {
 		return nil, fmt.Errorf("пароли не совпадают")
@@ -289,6 +292,6 @@ func (ur *UsersRepository) ChangePassword(
 	}, nil
 }
 
-func (or *UsersRepository) WriteLog(result any, operation, status, tableName string) (int64, error) {
-	return WriteLog(result, operation, status, tableName, or.redis)
+func (ur *UsersRepository) WriteLog(result any, operation, status, tableName string) (int64, error) {
+	return WriteLog(result, operation, status, tableName, ur.redis)
 }

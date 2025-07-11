@@ -9,7 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type SqlConfig struct {
+type SQLConfig struct {
 	Host           string
 	Port           string
 	User           string
@@ -20,7 +20,7 @@ type SqlConfig struct {
 	Timeout        int
 }
 
-func (c SqlConfig) CreateDsn() string {
+func (c SQLConfig) CreateDsn() string {
 	return fmt.Sprintf(
 		"%s://%s:%s@%s:%s/%s?sslmode=%s&pool_max_conns=%d&connect_timeout=%d",
 		"postgres",

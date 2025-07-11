@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"golang/stockLkBack/internal/model"
+	"github.com/mikhailshtv/stockLkBack/internal/model"
 
 	"github.com/golang-jwt/jwt/v5"
 )

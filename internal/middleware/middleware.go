@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"golang/stockLkBack/internal/utils/jwtgen"
+	"github.com/mikhailshtv/stockLkBack/internal/utils/jwtgen"
 
 	"github.com/gin-gonic/gin"
 )

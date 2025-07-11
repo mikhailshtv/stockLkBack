@@ -1,6 +1,6 @@
 package handler
 
-import "golang/stockLkBack/internal/service"
+import "github.com/mikhailshtv/stockLkBack/internal/service"
 
 const (
 	userRoleKey = "role"

@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"golang/stockLkBack/internal/model"
+	"github.com/mikhailshtv/stockLkBack/internal/model"
 
 	"github.com/gin-gonic/gin"
 )
@@ -127,7 +127,12 @@ func (h *Handler) EditUser(ctx *gin.Context) {
 // @Router /api/v1/users/{id}/role [patch]
 // @Security BearerAuth.
 func (h *Handler) ChangeUserRole(ctx *gin.Context) {
-	isEmployee := ctx.GetString(userRoleKey) == "employee"
+	role, exists := ctx.Get(userRoleKey)
+	if !exists {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Некорректная роль пользователя"})
+		return
+	}
+	isEmployee := role == model.RoleEmployee
 	if !isEmployee {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "недостаточно прав для выполнения операции"})
 		return
@@ -266,7 +271,12 @@ func (h *Handler) GetUserByID(ctx *gin.Context) {
 // @Router /api/v1/users/{id} [delete]
 // @Security BearerAuth.
 func (h *Handler) DeleteUser(ctx *gin.Context) {
-	isEmployee := ctx.GetString(userRoleKey) == "employee"
+	role, exists := ctx.Get(userRoleKey)
+	if !exists {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Некорректная роль пользователя"})
+		return
+	}
+	isEmployee := role == model.RoleEmployee
 	if !isEmployee {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "недостаточно прав для выполнения операции"})
 		return

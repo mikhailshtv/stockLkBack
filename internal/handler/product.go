@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strings"
 
-	"golang/stockLkBack/internal/model"
-	"golang/stockLkBack/internal/service"
+	"github.com/mikhailshtv/stockLkBack/internal/model"
+	"github.com/mikhailshtv/stockLkBack/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -28,7 +28,7 @@ func (h *Handler) CreateProduct(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Некорректная роль пользователя"})
 		return
 	}
-	isEmployee := role == "employee"
+	isEmployee := role == model.RoleEmployee
 	if !isEmployee {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "недостаточно прав для выполнения операции"})
 		return
@@ -67,7 +67,7 @@ func (h *Handler) EditProduct(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Некорректная роль пользователя"})
 		return
 	}
-	isEmployee := role == "employee"
+	isEmployee := role == model.RoleEmployee
 	if !isEmployee {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "недостаточно прав для выполнения операции"})
 		return
@@ -157,7 +157,12 @@ func (h *Handler) GetProductByID(ctx *gin.Context) {
 // @Router /api/v1/products/{id} [delete]
 // @Security BearerAuth.
 func (h *Handler) DeleteProduct(ctx *gin.Context) {
-	isEmployee := ctx.GetString(userRoleKey) == "employee"
+	role, exists := ctx.Get(userRoleKey)
+	if !exists {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Некорректная роль пользователя"})
+		return
+	}
+	isEmployee := role == model.RoleEmployee
 	if !isEmployee {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "недостаточно прав для выполнения операции"})
 		return
