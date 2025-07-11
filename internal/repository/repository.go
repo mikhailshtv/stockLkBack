@@ -22,7 +22,7 @@ type Order interface {
 	Create(ctx context.Context, order model.OrderRequestBody, userID int32) (*model.Order, error)
 	GetAll(ctx context.Context, userID int32, role model.UserRole) ([]model.Order, error)
 	GetByID(ctx context.Context, id, userID int32, role model.UserRole) (*model.Order, error)
-	Delete(ctx context.Context, id int32, userID int32) (*model.Order, error)
+	Delete(ctx context.Context, id, userID int32) (*model.Order, error)
 	Update(ctx context.Context, id int32, orderReq model.OrderRequestBody, userID int32) (*model.Order, error)
 	WriteLog(result any, operation, status, tableName string) (int64, error)
 }

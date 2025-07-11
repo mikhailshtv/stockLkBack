@@ -41,7 +41,6 @@ func (pr *ProductsRepository) Create(ctx context.Context, product model.Product)
 		product.PurchasePrice,
 		product.SellPrice,
 	).Scan(&product.ID)
-
 	if err != nil {
 		if isDuplicateKeyError(err) {
 			return nil, fmt.Errorf("продукт с кодом %d уже существует", product.Code)
@@ -125,7 +124,6 @@ func (pr *ProductsRepository) Update(ctx context.Context, id int32, product mode
 		product.SellPrice,
 		id,
 	).StructScan(&updatedProduct)
-
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("продукт не найден: %w", err)

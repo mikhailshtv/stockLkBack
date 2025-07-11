@@ -6,10 +6,9 @@ import (
 	"testing"
 	"time"
 
-	mocks "github.com/mikhailshtv/stockLkBack/internal/service/mocks"
-
 	"github.com/mikhailshtv/stockLkBack/internal/model"
 	"github.com/mikhailshtv/stockLkBack/internal/repository"
+	mocks "github.com/mikhailshtv/stockLkBack/internal/service/mocks"
 
 	"github.com/golang/mock/gomock"
 )

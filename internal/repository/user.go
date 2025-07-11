@@ -52,7 +52,6 @@ func (ur *UsersRepository) Create(ctx context.Context, user model.User) (*model.
 		user.LastName,
 		user.Email,
 	).StructScan(&user)
-
 	if err != nil {
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
@@ -165,7 +164,6 @@ func (ur *UsersRepository) Update(ctx context.Context, id int, userReq model.Use
 		existingUser.Email,
 		id,
 	).StructScan(&updatedUser)
-
 	if err != nil {
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {

@@ -14,7 +14,7 @@ type Order interface {
 	Create(order model.OrderRequestBody, userID int32) (*model.Order, error)
 	GetAll(userID int32, role model.UserRole) ([]model.Order, error)
 	GetByID(id, userID int32, role model.UserRole) (*model.Order, error)
-	Delete(id int32, userID int32) error
+	Delete(id, userID int32) error
 	Update(id int32, order model.OrderRequestBody, userID int32) (*model.Order, error)
 }
 

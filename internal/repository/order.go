@@ -97,7 +97,6 @@ func (or *OrdersRepository) GetAll(ctx context.Context, userID int32, role model
 			JOIN products.products p ON op.product_id = p.id
 			WHERE op.order_id = $1
 		`, orders[i].ID)
-
 		if err != nil {
 			return nil, fmt.Errorf("ошибка получения товаров для заказа %d: %w", orders[i].ID, err)
 		}
@@ -151,7 +150,7 @@ func (or *OrdersRepository) GetByID(ctx context.Context, id, userID int32, role 
 	return &order, nil
 }
 
-func (or *OrdersRepository) Delete(ctx context.Context, id int32, userID int32) (*model.Order, error) {
+func (or *OrdersRepository) Delete(ctx context.Context, id, userID int32) (*model.Order, error) {
 	var lastErr error
 
 	for i := 0; i < maxRetries; i++ {
@@ -575,7 +574,7 @@ func (or *OrdersRepository) getUpdatedOrder(ctx context.Context, tx *sqlx.Tx, or
 	return &order, nil
 }
 
-func (or *OrdersRepository) tryDeleteOrder(ctx context.Context, orderID int32, userID int32) (*model.Order, error) {
+func (or *OrdersRepository) tryDeleteOrder(ctx context.Context, orderID, userID int32) (*model.Order, error) {
 	tx, err := or.db.BeginTxx(ctx, &sql.TxOptions{
 		Isolation: sql.LevelSerializable,
 	})

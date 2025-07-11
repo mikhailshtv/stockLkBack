@@ -50,7 +50,7 @@ func (s *OrdersService) GetByID(id, userID int32, role model.UserRole) (*model.O
 	return s.repo.GetByID(s.ctx, id, userID, role)
 }
 
-func (s *OrdersService) Delete(id int32, userID int32) error {
+func (s *OrdersService) Delete(id, userID int32) error {
 	delitedOrder, err := s.repo.Delete(s.ctx, id, userID)
 	var result any
 	var status string
