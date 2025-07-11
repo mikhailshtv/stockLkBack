@@ -32,4 +32,6 @@ SELECT 'down SQL query';
 DROP SCHEMA IF EXISTS products;
 DROP TABLE IF EXISTS products.products;
 DROP TABLE IF EXISTS orders.order_products;
+DROP INDEX IF EXISTS idx_order_products_order ON orders.order_products(order_id);
+DROP INDEX IF EXISTS idx_order_products_product ON orders.order_products(product_id);
 -- +goose StatementEnd

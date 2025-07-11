@@ -182,7 +182,8 @@ func (ur *UsersRepository) Update(id int, userReq model.UserEditBody, ctx contex
 
 func (ur *UsersRepository) Login(userReq model.LoginRequest, ctx context.Context) (*model.TokenSuccess, error) {
 	const query = `
-        SELECT 
+        SELECT
+						id,
             login,
             password_hash,
             email,
@@ -201,7 +202,7 @@ func (ur *UsersRepository) Login(userReq model.LoginRequest, ctx context.Context
 		return nil, fmt.Errorf("ошибка запроса к базе: %w", err)
 	}
 	if user.CheckUserPassword(userReq.Password) {
-		token, err := jwtgen.GenerateToken(userReq.Login, user.Role)
+		token, err := jwtgen.GenerateToken(user.ID, user.Login, user.Role)
 		if err != nil {
 			return nil, errors.New("ошибка генерации токена")
 		}

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"log"
 
 	"golang/stockLkBack/internal/model"
@@ -15,14 +16,15 @@ const (
 
 type OrdersService struct {
 	repo repository.Order
+	ctx  context.Context
 }
 
-func NewOrdersService(repo repository.Order) *OrdersService {
-	return &OrdersService{repo: repo}
+func NewOrdersService(repo repository.Order, ctx context.Context) *OrdersService {
+	return &OrdersService{repo: repo, ctx: ctx}
 }
 
-func (s *OrdersService) Create(order model.OrderRequestBody) (*model.Order, error) {
-	createdOrder, err := s.repo.Create(order)
+func (s *OrdersService) Create(order model.OrderRequestBody, userID int32) (*model.Order, error) {
+	createdOrder, err := s.repo.Create(order, userID, s.ctx)
 	var result any
 	var status string
 	if err != nil {
@@ -40,16 +42,16 @@ func (s *OrdersService) Create(order model.OrderRequestBody) (*model.Order, erro
 	return createdOrder, err
 }
 
-func (s *OrdersService) GetAll() ([]model.Order, error) {
-	return s.repo.GetAll()
+func (s *OrdersService) GetAll(userID int32, role model.UserRole) ([]model.Order, error) {
+	return s.repo.GetAll(userID, role, s.ctx)
 }
 
-func (s *OrdersService) GetByID(id int32) (*model.Order, error) {
-	return s.repo.GetByID(id)
+func (s *OrdersService) GetByID(id, userID int32, role model.UserRole) (*model.Order, error) {
+	return s.repo.GetByID(id, userID, role, s.ctx)
 }
 
-func (s *OrdersService) Delete(id int32) error {
-	delitedOrder, err := s.repo.Delete(id)
+func (s *OrdersService) Delete(id int32, userID int32) error {
+	delitedOrder, err := s.repo.Delete(id, userID, s.ctx)
 	var result any
 	var status string
 	if err != nil {
@@ -67,8 +69,8 @@ func (s *OrdersService) Delete(id int32) error {
 	return err
 }
 
-func (s *OrdersService) Update(id int32, order model.OrderRequestBody) (*model.Order, error) {
-	updatedOrder, err := s.repo.Update(id, order)
+func (s *OrdersService) Update(id int32, order model.OrderRequestBody, userID int32) (*model.Order, error) {
+	updatedOrder, err := s.repo.Update(id, order, userID, s.ctx)
 	var result any
 	var status string
 	if err != nil {

@@ -22,13 +22,14 @@ import (
 // @Router /api/v1/orders [post]
 // @Security BearerAuth.
 func (h *Handler) CreateOrder(ctx *gin.Context) {
+	userID := ctx.GetInt(userIDKey)
 	var orderReq model.OrderRequestBody
 	if err := ctx.ShouldBindJSON(&orderReq); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Некорректное тело запроса"})
 		return
 	}
 
-	order, err := h.Services.Order.Create(orderReq)
+	order, err := h.Services.Order.Create(orderReq, int32(userID))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -48,6 +49,7 @@ func (h *Handler) CreateOrder(ctx *gin.Context) {
 // @Router /api/v1/orders{id} [put]
 // @Security BearerAuth.
 func (h *Handler) EditOrder(ctx *gin.Context) {
+	userID := ctx.GetInt(userIDKey)
 	idStr := ctx.Params.ByName("id")
 	id, err := service.ParseInt32(idStr)
 	if err != nil {
@@ -58,7 +60,7 @@ func (h *Handler) EditOrder(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	orderResult, err := h.Services.Order.Update(id, order)
+	orderResult, err := h.Services.Order.Update(id, order, int32(userID))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -75,7 +77,14 @@ func (h *Handler) EditOrder(ctx *gin.Context) {
 // @Router /api/v1/orders [get]
 // @Security BearerAuth.
 func (h *Handler) ListOrders(ctx *gin.Context) {
-	orders, err := h.Services.Order.GetAll()
+	userID := ctx.GetInt(userIDKey)
+	role, exists := ctx.Get(userRoleKey)
+	if !exists {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Некорректная роль пользователя"})
+		return
+	}
+
+	orders, err := h.Services.Order.GetAll(int32(userID), role.(model.UserRole))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -93,12 +102,18 @@ func (h *Handler) ListOrders(ctx *gin.Context) {
 // @Router /api/v1/orders/{id} [get]
 // @Security BearerAuth.
 func (h *Handler) GetOrderByID(ctx *gin.Context) {
+	userID := ctx.GetInt(userIDKey)
+	role, exists := ctx.Get(userRoleKey)
+	if !exists {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Некорректная роль пользователя"})
+		return
+	}
 	idStr := ctx.Params.ByName("id")
 	id, err := service.ParseInt32(idStr)
 	if err != nil {
 		log.Fatal(err)
 	}
-	order, err := h.Services.Order.GetByID(id)
+	order, err := h.Services.Order.GetByID(id, int32(userID), role.(model.UserRole))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -117,11 +132,12 @@ func (h *Handler) GetOrderByID(ctx *gin.Context) {
 // @Security BearerAuth.
 func (h *Handler) DeleteOrder(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
+	userID := ctx.GetInt(userIDKey)
 	id, err := service.ParseInt32(idStr)
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = h.Services.Order.Delete(id)
+	err = h.Services.Order.Delete(id, int32(userID))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

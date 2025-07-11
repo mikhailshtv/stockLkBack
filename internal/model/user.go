@@ -1,6 +1,8 @@
 package model
 
 import (
+	"fmt"
+
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -67,6 +69,7 @@ type LoginRequest struct {
 type Claims struct {
 	Login                string   `json:"login"`
 	Role                 UserRole `json:"role"`
+	UserID               int      `json:"userId"`
 	jwt.RegisteredClaims          // Данное поле нужно для правильной генерации JWT.
 }
 
@@ -87,5 +90,16 @@ func (r UserRole) Valid() bool {
 		return true
 	default:
 		return false
+	}
+}
+
+func ParseUserRole(roleStr string) (UserRole, error) {
+	switch roleStr {
+	case string(RoleClient):
+		return RoleClient, nil
+	case string(RoleEmployee):
+		return RoleEmployee, nil
+	default:
+		return "", fmt.Errorf("неизвестная роль: %s", roleStr)
 	}
 }

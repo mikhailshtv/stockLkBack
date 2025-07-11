@@ -19,7 +19,6 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -30,9 +29,9 @@ type server struct {
 
 func (s *server) GetOrders(
 	_ context.Context,
-	_ *emptypb.Empty,
+	req *orders_api.OrderGetAllRequest,
 ) (*orders_api.GetOrdersResponse, error) {
-	ordersAll, err := s.handler.Services.Order.GetAll()
+	ordersAll, err := s.handler.Services.Order.GetAll(req.UserId, model.UserRole(req.Role))
 	if err != nil {
 		log.Println(err.Error())
 		err = status.Errorf(codes.Internal, "Ошибка получения списка заказов")
@@ -60,7 +59,7 @@ func (s *server) GetOrders(
 
 func (s *server) GetOrder(
 	_ context.Context,
-	req *orders_api.OrderActionByIdRequest,
+	req *orders_api.OrderGetByIdRequest,
 ) (*orders_api.GetOrderResponse, error) {
 	orderID := req.GetId()
 	if orderID <= 0 {
@@ -71,7 +70,7 @@ func (s *server) GetOrder(
 		return nil, err
 	}
 
-	receivedOrder, err := s.handler.Services.Order.GetByID(orderID)
+	receivedOrder, err := s.handler.Services.Order.GetByID(orderID, req.UserId, model.UserRole(req.Role))
 	if err != nil {
 		if err.Error() == repository.NotFoundErrorMessage {
 			err = status.Errorf(codes.NotFound, "Объект не найден")
@@ -109,6 +108,7 @@ func (s *server) CreateOrder(
 	req *orders_api.OrderCreateRequest,
 ) (*orders_api.Order, error) {
 	products := req.Products
+	userID := req.UserId
 	productsJSON, err := json.Marshal(products)
 	if err != nil {
 		log.Println(err.Error())
@@ -123,7 +123,7 @@ func (s *server) CreateOrder(
 	if err != nil {
 		log.Println(err.Error())
 	}
-	order, err := s.handler.Services.Order.Create(orderReq)
+	order, err := s.handler.Services.Order.Create(orderReq, userID)
 	if err != nil {
 		log.Println(err.Error())
 		err = status.Errorf(codes.Internal, "Ошибка при создании заказа")
@@ -132,6 +132,15 @@ func (s *server) CreateOrder(
 		}
 	}
 
+	protoProductsJSON, err := json.Marshal(order.Products)
+	if err != nil {
+		log.Println(err.Error())
+	}
+	var protoProducts []*orders_api.Product
+	err = json.Unmarshal(protoProductsJSON, &protoProducts)
+	if err != nil {
+		log.Println(err.Error())
+	}
 	return &orders_api.Order{
 		Id:               order.ID,
 		Number:           order.Number,
@@ -139,7 +148,7 @@ func (s *server) CreateOrder(
 		CreatedDate:      timestamppb.New(order.CreatedDate),
 		LastModifiedDate: timestamppb.New(order.LastModifiedDate),
 		Status:           &orders_api.OrderStatus{Key: order.Status.Key, DisplayName: order.Status.DisplayName},
-		Products:         products,
+		Products:         protoProducts,
 	}, nil
 }
 
@@ -148,6 +157,7 @@ func (s *server) EditOrder(
 	req *orders_api.OrderEditRequest,
 ) (*orders_api.Order, error) {
 	orderID := req.GetId()
+	userID := req.UserId
 	if orderID <= 0 {
 		err := status.Errorf(codes.InvalidArgument, "id должен быть больше чем 0")
 		if err != nil {
@@ -155,7 +165,6 @@ func (s *server) EditOrder(
 		}
 		return nil, err
 	}
-	products := req.Products
 
 	var orderReq model.OrderRequestBody
 	orderReqJSON, err := json.Marshal(req)
@@ -174,7 +183,7 @@ func (s *server) EditOrder(
 		}
 	}
 
-	order, err := s.handler.Services.Order.Update(orderID, orderReq)
+	order, err := s.handler.Services.Order.Update(orderID, orderReq, userID)
 	if err != nil {
 		log.Println(err.Error())
 		if err.Error() == repository.NotFoundErrorMessage {
@@ -191,6 +200,15 @@ func (s *server) EditOrder(
 		return nil, err
 	}
 
+	protoProductsJSON, err := json.Marshal(order.Products)
+	if err != nil {
+		log.Println(err.Error())
+	}
+	var protoProducts []*orders_api.Product
+	err = json.Unmarshal(protoProductsJSON, &protoProducts)
+	if err != nil {
+		log.Println(err.Error())
+	}
 	return &orders_api.Order{
 		Id:               order.ID,
 		Number:           order.Number,
@@ -198,15 +216,16 @@ func (s *server) EditOrder(
 		CreatedDate:      timestamppb.New(order.CreatedDate),
 		LastModifiedDate: timestamppb.New(order.LastModifiedDate),
 		Status:           &orders_api.OrderStatus{Key: order.Status.Key, DisplayName: order.Status.DisplayName},
-		Products:         products,
+		Products:         protoProducts,
 	}, nil
 }
 
 func (s *server) DeleteOrder(
 	_ context.Context,
-	req *orders_api.OrderActionByIdRequest,
+	req *orders_api.OrderDeleteRequest,
 ) (*orders_api.Success, error) {
 	orderID := req.GetId()
+	userID := req.UserId
 	if orderID <= 0 {
 		err := status.Errorf(codes.InvalidArgument, "id должен быть больше чем 0")
 		if err != nil {
@@ -215,7 +234,7 @@ func (s *server) DeleteOrder(
 		return nil, err
 	}
 
-	err := s.handler.Services.Order.Delete(orderID)
+	err := s.handler.Services.Order.Delete(orderID, userID)
 	if err != nil {
 		if err.Error() == repository.NotFoundErrorMessage {
 			err = status.Errorf(codes.NotFound, "Объект не найден")

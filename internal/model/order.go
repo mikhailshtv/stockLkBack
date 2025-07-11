@@ -2,6 +2,8 @@ package model
 
 import (
 	"database/sql/driver"
+	"errors"
+	"fmt"
 	"time"
 )
 
@@ -33,13 +35,39 @@ type Order struct {
 	Number           int32       `json:"number" bson:"number" db:"order_number"`
 	TotalCost        int32       `json:"totalCost" bson:"totalCost" db:"total_cost"`
 	CreatedDate      time.Time   `json:"createdDate" bson:"createdDate" db:"created_date"`
-	LastModifiedDate time.Time   `json:"lastModifiedDate" bson:"lastModifiedDate" db:"last_midified_date"`
+	LastModifiedDate time.Time   `json:"lastModifiedDate" bson:"lastModifiedDate" db:"last_modified_date"`
 	Status           OrderStatus `json:"status" bson:"status" db:"status"`
 	Products         []Product   `json:"products" binding:"required" bson:"products" db:"-"`
+	UserID           int32       `json:"userId" db:"user_id"`
 }
 
 type OrderRequestBody struct {
-	Products []Product `json:"products" binding:"required" bson:"products"`
+	Products []OrderProduct `json:"products" binding:"required" bson:"products"`
+}
+
+type OrderProduct struct {
+	ProductID int32 `json:"productId" bindings:"required" db:"product_id"`
+	Quantity  int32 `json:"quantity" bindings:"required" db:"quantity"`    // Количество покупаемых товаров
+	SellPrice int32 `json:"sellPrice" bindings:"required" db:"sell_price"` // Цена товара на момент создания заказа
+}
+
+func (os *OrderStatus) Scan(value interface{}) error {
+	str, ok := value.(string)
+	if !ok {
+		return errors.New("неверный тип для OrderStatus")
+	}
+
+	switch str {
+	case "active":
+		*os = StatusActive
+	case "executed":
+		*os = StatusExecuted
+	case "deleted":
+		*os = StatusDeleted
+	default:
+		return fmt.Errorf("неизвестный статус: %s", str)
+	}
+	return nil
 }
 
 func (s OrderStatus) Value() (driver.Value, error) {

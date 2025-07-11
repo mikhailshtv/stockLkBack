@@ -11,11 +11,11 @@ import (
 //go:generate mockgen -source=service.go -destination=mocks/mock.go
 
 type Order interface {
-	Create(order model.OrderRequestBody) (*model.Order, error)
-	GetAll() ([]model.Order, error)
-	GetByID(id int32) (*model.Order, error)
-	Delete(id int32) error
-	Update(id int32, order model.OrderRequestBody) (*model.Order, error)
+	Create(order model.OrderRequestBody, userID int32) (*model.Order, error)
+	GetAll(userID int32, role model.UserRole) ([]model.Order, error)
+	GetByID(id, userID int32, role model.UserRole) (*model.Order, error)
+	Delete(id int32, userID int32) error
+	Update(id int32, order model.OrderRequestBody, userID int32) (*model.Order, error)
 }
 
 type Product interface {
@@ -45,7 +45,7 @@ type Service struct {
 
 func NewService(repo *repository.Repository, ctx context.Context) *Service {
 	return &Service{
-		Order:   NewOrdersService(repo.Order),
+		Order:   NewOrdersService(repo.Order, ctx),
 		Product: NewProductsService(repo.Product, ctx),
 		User:    NewUsersService(repo.User, ctx),
 	}

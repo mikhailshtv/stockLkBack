@@ -18,11 +18,11 @@ const NotFoundErrorMessage = "элемент не найден"
 //go:generate mockgen -source=repository.go -destination=mocks/repository.go -package=mocks
 
 type Order interface {
-	Create(order model.OrderRequestBody) (*model.Order, error)
-	GetAll() ([]model.Order, error)
-	GetByID(id int32) (*model.Order, error)
-	Delete(id int32) (*model.Order, error)
-	Update(id int32, order model.OrderRequestBody) (*model.Order, error)
+	Create(order model.OrderRequestBody, userID int32, ctx context.Context) (*model.Order, error)
+	GetAll(userID int32, role model.UserRole, ctx context.Context) ([]model.Order, error)
+	GetByID(id, userID int32, role model.UserRole, ctx context.Context) (*model.Order, error)
+	Delete(id int32, userId int32, ctx context.Context) (*model.Order, error)
+	Update(id int32, orderReq model.OrderRequestBody, userID int32, ctx context.Context) (*model.Order, error)
 	WriteLog(result any, operation, status, tableName string) (int64, error)
 }
 

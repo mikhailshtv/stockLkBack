@@ -4,6 +4,7 @@ import "golang/stockLkBack/internal/service"
 
 const (
 	userRoleKey = "role"
+	userIDKey   = "userId"
 )
 
 type Handler struct {

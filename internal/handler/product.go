@@ -53,6 +53,7 @@ func (h *Handler) CreateProduct(ctx *gin.Context) {
 // @Security BearerAuth.
 func (h *Handler) EditProduct(ctx *gin.Context) {
 	isEmployee := ctx.GetString(userRoleKey) == "employee"
+	log.Println(ctx.GetString(userRoleKey))
 	if !isEmployee {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "недостаточно прав для выполнения операции"})
 		return

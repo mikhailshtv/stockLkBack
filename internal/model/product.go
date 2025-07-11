@@ -5,7 +5,7 @@ type Product struct {
 	Code          int32  `json:"code" db:"code"`
 	Quantity      int32  `json:"quantity" db:"quantity"`
 	Name          string `json:"name" db:"name"`
-	PurchasePrice int32  `json:"purchasePrice" db:"purchase_price"`
+	PurchasePrice int32  `json:"purchasePrice,omitempty" db:"purchase_price"`
 	SellPrice     int32  `json:"sellPrice" db:"sell_price"`
 }
 

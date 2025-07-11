@@ -33,17 +33,14 @@ func TestOrderService_Create(t *testing.T) {
 			mock: func() {
 				dbMock.EXPECT().Create(
 					model.OrderRequestBody{
-						Products: []model.Product{
+						Products: []model.OrderProduct{
 							{
-								ID:            1,
-								Code:          14823,
-								Quantity:      215,
-								Name:          "Cheese",
-								PurchasePrice: 24000,
-								SellPrice:     74000,
+								ProductID: 1,
+								Quantity:  1,
+								SellPrice: 74000,
 							},
 						},
-					},
+					}, 1,
 				).Return(
 					&model.Order{
 						ID:               1,
@@ -66,14 +63,11 @@ func TestOrderService_Create(t *testing.T) {
 				)
 			},
 			args: model.OrderRequestBody{
-				Products: []model.Product{
+				Products: []model.OrderProduct{
 					{
-						ID:            1,
-						Code:          14823,
-						Quantity:      215,
-						Name:          "Cheese",
-						PurchasePrice: 24000,
-						SellPrice:     74000,
+						ProductID: 1,
+						Quantity:  1,
+						SellPrice: 74000,
 					},
 				},
 			},
@@ -102,31 +96,25 @@ func TestOrderService_Create(t *testing.T) {
 			mock: func() {
 				dbMock.EXPECT().Create(
 					model.OrderRequestBody{
-						Products: []model.Product{
+						Products: []model.OrderProduct{
 							{
-								ID:            1,
-								Code:          14823,
-								Quantity:      215,
-								Name:          "Cheese",
-								PurchasePrice: 24000,
-								SellPrice:     74000,
+								ProductID: 1,
+								Quantity:  1,
+								SellPrice: 74000,
 							},
 						},
-					},
+					}, 1,
 				).Return(
 					nil,
 					errors.New("ошибка сохранения в файл"),
 				)
 			},
 			args: model.OrderRequestBody{
-				Products: []model.Product{
+				Products: []model.OrderProduct{
 					{
-						ID:            1,
-						Code:          14823,
-						Quantity:      215,
-						Name:          "Cheese",
-						PurchasePrice: 24000,
-						SellPrice:     74000,
+						ProductID: 1,
+						Quantity:  1,
+						SellPrice: 74000,
 					},
 				},
 			},
@@ -143,7 +131,7 @@ func TestOrderService_Create(t *testing.T) {
 
 			tt.mock()
 
-			got, err := os.Order.Create(tt.args)
+			got, err := os.Order.Create(tt.args, 1)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Ошибка создания заказа error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -180,17 +168,14 @@ func TestOrderService_Update(t *testing.T) {
 				dbMock.EXPECT().Update(
 					1,
 					model.OrderRequestBody{
-						Products: []model.Product{
+						Products: []model.OrderProduct{
 							{
-								ID:            1,
-								Code:          14823,
-								Quantity:      215,
-								Name:          "Pizza",
-								PurchasePrice: 24000,
-								SellPrice:     74000,
+								ProductID: 1,
+								Quantity:  1,
+								SellPrice: 74000,
 							},
 						},
-					},
+					}, 1,
 				).Return(
 					&model.Order{
 						ID:               1,
@@ -215,14 +200,11 @@ func TestOrderService_Update(t *testing.T) {
 			args: requestBody{
 				id: 1,
 				body: model.OrderRequestBody{
-					Products: []model.Product{
+					Products: []model.OrderProduct{
 						{
-							ID:            1,
-							Code:          14823,
-							Quantity:      215,
-							Name:          "Pizza",
-							PurchasePrice: 24000,
-							SellPrice:     74000,
+							ProductID: 1,
+							Quantity:  1,
+							SellPrice: 74000,
 						},
 					},
 				},
@@ -253,17 +235,14 @@ func TestOrderService_Update(t *testing.T) {
 				dbMock.EXPECT().Update(
 					1,
 					model.OrderRequestBody{
-						Products: []model.Product{
+						Products: []model.OrderProduct{
 							{
-								ID:            1,
-								Code:          14823,
-								Quantity:      215,
-								Name:          "Pizza",
-								PurchasePrice: 24000,
-								SellPrice:     74000,
+								ProductID: 1,
+								Quantity:  1,
+								SellPrice: 74000,
 							},
 						},
-					},
+					}, 1,
 				).Return(
 					nil,
 					errors.New(repository.NotFoundErrorMessage),
@@ -272,14 +251,11 @@ func TestOrderService_Update(t *testing.T) {
 			args: requestBody{
 				id: 1,
 				body: model.OrderRequestBody{
-					Products: []model.Product{
+					Products: []model.OrderProduct{
 						{
-							ID:            1,
-							Code:          14823,
-							Quantity:      215,
-							Name:          "Pizza",
-							PurchasePrice: 24000,
-							SellPrice:     74000,
+							ProductID: 1,
+							Quantity:  1,
+							SellPrice: 74000,
 						},
 					},
 				},
@@ -294,7 +270,7 @@ func TestOrderService_Update(t *testing.T) {
 			t.Parallel()
 			os := &Service{Order: dbMock}
 			tt.mock()
-			got, err := os.Order.Update(tt.args.id, tt.args.body)
+			got, err := os.Order.Update(tt.args.id, tt.args.body, 1)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Ошибка обноления заказа error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -323,7 +299,7 @@ func TestOrderService_GetAll(t *testing.T) {
 		{
 			name: "success",
 			mock: func() {
-				dbMock.EXPECT().GetAll().Return(
+				dbMock.EXPECT().GetAll(1, model.RoleEmployee).Return(
 					[]model.Order{
 						{
 							ID:               1,
@@ -378,7 +354,7 @@ func TestOrderService_GetAll(t *testing.T) {
 
 			tt.mock()
 
-			got, err := os.Order.GetAll()
+			got, err := os.Order.GetAll(1, model.RoleEmployee)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Ошибка получения списка заказов error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -409,7 +385,7 @@ func TestOrderService_GetById(t *testing.T) {
 		{
 			name: "success",
 			mock: func() {
-				dbMock.EXPECT().GetByID(1).Return(
+				dbMock.EXPECT().GetByID(1, 1, model.RoleEmployee).Return(
 					&model.Order{
 						ID:               1,
 						Number:           1,
@@ -454,7 +430,7 @@ func TestOrderService_GetById(t *testing.T) {
 		{
 			name: "error",
 			mock: func() {
-				dbMock.EXPECT().GetByID(1).Return(
+				dbMock.EXPECT().GetByID(1, 1, model.RoleEmployee).Return(
 					nil,
 					errors.New(repository.NotFoundErrorMessage),
 				)
@@ -473,7 +449,7 @@ func TestOrderService_GetById(t *testing.T) {
 
 			tt.mock()
 
-			got, err := os.Order.GetByID(tt.args)
+			got, err := os.Order.GetByID(tt.args, 1, model.RoleEmployee)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Ошибка получения заказа по id error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -504,7 +480,7 @@ func TestOrderService_Delete(t *testing.T) {
 		{
 			name: "success",
 			mock: func() {
-				dbMock.EXPECT().Delete(1).Return(nil)
+				dbMock.EXPECT().Delete(1, 1).Return(nil)
 			},
 			args:    1,
 			want:    nil,
@@ -513,7 +489,7 @@ func TestOrderService_Delete(t *testing.T) {
 		{
 			name: "error",
 			mock: func() {
-				dbMock.EXPECT().Delete(1).Return(
+				dbMock.EXPECT().Delete(1, 1).Return(
 					errors.New("ошибка сохранения в файл"),
 				)
 			},
@@ -531,7 +507,7 @@ func TestOrderService_Delete(t *testing.T) {
 
 			tt.mock()
 
-			err := os.Order.Delete(tt.args)
+			err := os.Order.Delete(tt.args, 1)
 			if !errors.Is(err, tt.want) && err.Error() != tt.want.Error() {
 				t.Errorf("Ошибка удаления заказа по id error = %v, want %v", err, tt.want)
 				return

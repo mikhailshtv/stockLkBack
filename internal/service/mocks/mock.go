@@ -35,77 +35,77 @@ func (m *MockOrder) EXPECT() *MockOrderMockRecorder {
 }
 
 // Create mocks base method.
-func (m *MockOrder) Create(order model.OrderRequestBody) (*model.Order, error) {
+func (m *MockOrder) Create(order model.OrderRequestBody, userID int32) (*model.Order, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Create", order)
+	ret := m.ctrl.Call(m, "Create", order, userID)
 	ret0, _ := ret[0].(*model.Order)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Create indicates an expected call of Create.
-func (mr *MockOrderMockRecorder) Create(order interface{}) *gomock.Call {
+func (mr *MockOrderMockRecorder) Create(order, userID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockOrder)(nil).Create), order)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockOrder)(nil).Create), order, userID)
 }
 
 // Delete mocks base method.
-func (m *MockOrder) Delete(id int32) error {
+func (m *MockOrder) Delete(id, userID int32) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Delete", id)
+	ret := m.ctrl.Call(m, "Delete", id, userID)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Delete indicates an expected call of Delete.
-func (mr *MockOrderMockRecorder) Delete(id interface{}) *gomock.Call {
+func (mr *MockOrderMockRecorder) Delete(id, userID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockOrder)(nil).Delete), id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockOrder)(nil).Delete), id, userID)
 }
 
 // GetAll mocks base method.
-func (m *MockOrder) GetAll() ([]model.Order, error) {
+func (m *MockOrder) GetAll(userID int32, role model.UserRole) ([]model.Order, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAll")
+	ret := m.ctrl.Call(m, "GetAll", userID, role)
 	ret0, _ := ret[0].([]model.Order)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetAll indicates an expected call of GetAll.
-func (mr *MockOrderMockRecorder) GetAll() *gomock.Call {
+func (mr *MockOrderMockRecorder) GetAll(userID, role interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAll", reflect.TypeOf((*MockOrder)(nil).GetAll))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAll", reflect.TypeOf((*MockOrder)(nil).GetAll), userID, role)
 }
 
 // GetByID mocks base method.
-func (m *MockOrder) GetByID(id int32) (*model.Order, error) {
+func (m *MockOrder) GetByID(id, userID int32, role model.UserRole) (*model.Order, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetByID", id)
+	ret := m.ctrl.Call(m, "GetByID", id, userID, role)
 	ret0, _ := ret[0].(*model.Order)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetByID indicates an expected call of GetByID.
-func (mr *MockOrderMockRecorder) GetByID(id interface{}) *gomock.Call {
+func (mr *MockOrderMockRecorder) GetByID(id, userID, role interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByID", reflect.TypeOf((*MockOrder)(nil).GetByID), id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByID", reflect.TypeOf((*MockOrder)(nil).GetByID), id, userID, role)
 }
 
 // Update mocks base method.
-func (m *MockOrder) Update(id int32, order model.OrderRequestBody) (*model.Order, error) {
+func (m *MockOrder) Update(id int32, order model.OrderRequestBody, userID int32) (*model.Order, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Update", id, order)
+	ret := m.ctrl.Call(m, "Update", id, order, userID)
 	ret0, _ := ret[0].(*model.Order)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Update indicates an expected call of Update.
-func (mr *MockOrderMockRecorder) Update(id, order interface{}) *gomock.Call {
+func (mr *MockOrderMockRecorder) Update(id, order, userID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockOrder)(nil).Update), id, order)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockOrder)(nil).Update), id, order, userID)
 }
 
 // MockProduct is a mock of Product interface.
@@ -132,7 +132,7 @@ func (m *MockProduct) EXPECT() *MockProductMockRecorder {
 }
 
 // Create mocks base method.
-func (m *MockProduct) Create(product model.ProductRequestBody) (*model.Product, error) {
+func (m *MockProduct) Create(product model.Product) (*model.Product, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Create", product)
 	ret0, _ := ret[0].(*model.Product)
@@ -191,7 +191,7 @@ func (mr *MockProductMockRecorder) GetByID(id interface{}) *gomock.Call {
 }
 
 // Update mocks base method.
-func (m *MockProduct) Update(id int32, product model.ProductRequestBody) (*model.Product, error) {
+func (m *MockProduct) Update(id int32, product model.Product) (*model.Product, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Update", id, product)
 	ret0, _ := ret[0].(*model.Product)

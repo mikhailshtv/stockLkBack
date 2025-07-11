@@ -42,19 +42,16 @@ func TestHandler_CreateOrder(t *testing.T) {
 				]
 			}`,
 			inputOrder: model.OrderRequestBody{
-				Products: []model.Product{
+				Products: []model.OrderProduct{
 					{
-						ID:            1,
-						Code:          14823,
-						Quantity:      215,
-						Name:          "Cheese",
-						PurchasePrice: 24000,
-						SellPrice:     74000,
+						ProductID: 1,
+						Quantity:  1,
+						SellPrice: 74000,
 					},
 				},
 			},
 			mockBehavior: func(s *mock_service.MockOrder, orderReq model.OrderRequestBody) {
-				s.EXPECT().Create(orderReq).Return(
+				s.EXPECT().Create(orderReq, 1).Return(
 					&model.Order{
 						ID:               1,
 						Number:           1,
@@ -126,19 +123,16 @@ func TestHandler_CreateOrder(t *testing.T) {
 					]
 				}`,
 			inputOrder: model.OrderRequestBody{
-				Products: []model.Product{
+				Products: []model.OrderProduct{
 					{
-						ID:            1,
-						Code:          14823,
-						Quantity:      215,
-						Name:          "Cheese",
-						PurchasePrice: 24000,
-						SellPrice:     74000,
+						ProductID: 1,
+						Quantity:  1,
+						SellPrice: 74000,
 					},
 				},
 			},
 			mockBehavior: func(s *mock_service.MockOrder, orderReq model.OrderRequestBody) {
-				s.EXPECT().Create(orderReq).Return(nil, errors.New("ошибка сохранения в файл"))
+				s.EXPECT().Create(orderReq, 1).Return(nil, errors.New("ошибка сохранения в файл"))
 			},
 			expectedStatusCode:   500,
 			expectedResponseBody: `{"error":"ошибка сохранения в файл"}`,
@@ -176,7 +170,7 @@ func TestHandler_ListOrders(t *testing.T) {
 		{
 			name: "Ok",
 			mockBehavior: func(s *mock_service.MockOrder) {
-				s.EXPECT().GetAll().Return(
+				s.EXPECT().GetAll(1, model.RoleEmployee).Return(
 					[]model.Order{
 						{
 							ID:               1,
@@ -224,7 +218,7 @@ func TestHandler_ListOrders(t *testing.T) {
 		{
 			name: "Ошибка коннекта к базе",
 			mockBehavior: func(s *mock_service.MockOrder) {
-				s.EXPECT().GetAll().Return(
+				s.EXPECT().GetAll(1, model.RoleEmployee).Return(
 					nil, errors.New("Ошибка коннекта к базе"),
 				)
 			},
@@ -285,19 +279,16 @@ func TestHandler_EditOrders(t *testing.T) {
 					]
 				}`,
 			inputOrder: model.OrderRequestBody{
-				Products: []model.Product{
+				Products: []model.OrderProduct{
 					{
-						ID:            1,
-						Code:          14823,
-						Quantity:      215,
-						Name:          "Cheese",
-						PurchasePrice: 24000,
-						SellPrice:     74000,
+						ProductID: 1,
+						Quantity:  1,
+						SellPrice: 74000,
 					},
 				},
 			},
 			mockBehavior: func(s *mock_service.MockOrder, requestBody model.OrderRequestBody) {
-				s.EXPECT().Update(1, requestBody).Return(
+				s.EXPECT().Update(1, requestBody, 1).Return(
 					&model.Order{
 						ID:               1,
 						Number:           1,
@@ -378,7 +369,7 @@ func TestHandler_GetOrderById(t *testing.T) {
 		{
 			name: "Ok",
 			mockBehavior: func(s *mock_service.MockOrder) {
-				s.EXPECT().GetByID(1).Return(
+				s.EXPECT().GetByID(1, 1, model.RoleEmployee).Return(
 					&model.Order{
 						ID:               1,
 						Number:           1,
@@ -459,7 +450,7 @@ func TestHandler_DeleteOrder(t *testing.T) {
 		{
 			name: "Ok",
 			mockBehavior: func(s *mock_service.MockOrder) {
-				s.EXPECT().Delete(1).Return(nil)
+				s.EXPECT().Delete(1, 1).Return(nil)
 			},
 			expectedStatusCode:   200,
 			expectedResponseBody: `{"status":"Success","message":"Объект успешно удален"}`,
@@ -467,7 +458,7 @@ func TestHandler_DeleteOrder(t *testing.T) {
 		{
 			name: "Ошибка удаления",
 			mockBehavior: func(s *mock_service.MockOrder) {
-				s.EXPECT().Delete(1).Return(errors.New("ошибка сохранения в файл"))
+				s.EXPECT().Delete(1, 1).Return(errors.New("ошибка сохранения в файл"))
 			},
 			expectedStatusCode:   500,
 			expectedResponseBody: `{"error":"ошибка сохранения в файл"}`,
