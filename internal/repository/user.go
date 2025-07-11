@@ -102,7 +102,7 @@ func (ur *UsersRepository) GetByID(id int, ctx context.Context) (*model.User, er
 	err := ur.db.QueryRowxContext(ctx, query, id).StructScan(&user)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("пользователь с ID %d не найден", id)
+			return nil, fmt.Errorf("пользователь не найден: %w", err)
 		}
 		return nil, fmt.Errorf("ошибка при получении пользователя: %w", err)
 	}
@@ -124,7 +124,7 @@ func (ur *UsersRepository) Delete(id int, ctx context.Context) (*model.User, err
 	err := ur.db.QueryRowxContext(ctx, query, id).StructScan(&deletedUser)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("пользователь с ID %d не найден: %w", id, err)
+			return nil, fmt.Errorf("пользователь не найден: %w", err)
 		}
 		return nil, fmt.Errorf("ошибка удаления пользователя: %w", err)
 	}
@@ -228,7 +228,7 @@ func (ur *UsersRepository) ChangeUserRole(id int, userRoleReq model.UserRoleBody
 	err := ur.db.QueryRowxContext(ctx, query, userRoleReq.Role, id).StructScan(&updatedUser)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("пользователь с ID %d не найден", id)
+			return nil, fmt.Errorf("пользователь не найден: %w", err)
 		}
 		return nil, fmt.Errorf("ошибка при обновлении роли: %w", err)
 	}
@@ -249,7 +249,7 @@ func (ur *UsersRepository) ChangePassword(
 	err := ur.db.QueryRowContext(ctx, passwordHashQuery, id).Scan(&currentHash)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("пользователь не найден")
+			return nil, fmt.Errorf("пользователь не найден: %w", err)
 		}
 		return nil, fmt.Errorf("ошибка при получении пользователя: %w", err)
 	}

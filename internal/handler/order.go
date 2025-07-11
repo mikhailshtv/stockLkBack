@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"log"
 	"net/http"
+	"strings"
 
 	"golang/stockLkBack/internal/model"
 	"golang/stockLkBack/internal/service"
@@ -16,8 +16,9 @@ import (
 // @Accept			json
 // @Produce		json
 // @Param order body model.OrderRequestBody true "Объект заказа"
-// @Success 200 {object} model.Order
+// @Success 201 {object} model.Order "Created"
 // @Failure 400 {object} model.Error "Invalid request"
+// @Failure 401 {object} model.Error "Anauthorized"
 // @Failure 500 {object} model.Error "Internal"
 // @Router /api/v1/orders [post]
 // @Security BearerAuth.
@@ -45,6 +46,9 @@ func (h *Handler) CreateOrder(ctx *gin.Context) {
 // @Param order body model.OrderRequestBody true "Объект заказа"
 // @Success 200 {object} model.Order
 // @Failure 400 {object} model.Error "Invalid request"
+// @Failure 401 {object} model.Error "Anauthorized"
+// @Failure 404 {object} model.Error "Not found"
+// @Failure 500 {object} model.Error "Internal"
 // @Param id path string true "id заказа"
 // @Router /api/v1/orders{id} [put]
 // @Security BearerAuth.
@@ -53,7 +57,8 @@ func (h *Handler) EditOrder(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
 	id, err := service.ParseInt32(idStr)
 	if err != nil {
-		log.Fatal(err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID заказа"})
+		return
 	}
 	var order model.OrderRequestBody
 	if err := ctx.ShouldBindJSON(&order); err != nil {
@@ -62,7 +67,11 @@ func (h *Handler) EditOrder(ctx *gin.Context) {
 	}
 	orderResult, err := h.Services.Order.Update(id, order, int32(userID))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if strings.Contains(err.Error(), "заказ не найден") {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	ctx.JSON(http.StatusOK, orderResult)
@@ -73,6 +82,8 @@ func (h *Handler) EditOrder(ctx *gin.Context) {
 // @Tags Orders
 // @Produce		json
 // @Success 200 {object} []model.Order
+// @Failure 400 {object} model.Error "Invalid request"
+// @Failure 401 {object} model.Error "Anauthorized"
 // @Failure 500 {string} string "Internal"
 // @Router /api/v1/orders [get]
 // @Security BearerAuth.
@@ -97,7 +108,10 @@ func (h *Handler) ListOrders(ctx *gin.Context) {
 // @Tags Orders
 // @Produce		json
 // @Success 200 {object} model.Order
-// @Failure 400 {string} string "Invalid request"
+// @Failure 400 {string} model.Error "Invalid request"
+// @Failure 401 {object} model.Error "Anauthorized"
+// @Failure 404 {object} model.Error "Not found"
+// @Failure 500 {object} model.Error "Internal"
 // @Param id path string true "id заказа"
 // @Router /api/v1/orders/{id} [get]
 // @Security BearerAuth.
@@ -111,11 +125,16 @@ func (h *Handler) GetOrderByID(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
 	id, err := service.ParseInt32(idStr)
 	if err != nil {
-		log.Fatal(err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID заказа"})
+		return
 	}
 	order, err := h.Services.Order.GetByID(id, int32(userID), role.(model.UserRole))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if strings.Contains(err.Error(), "заказ не найден") {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	ctx.JSON(http.StatusOK, order)
@@ -126,6 +145,9 @@ func (h *Handler) GetOrderByID(ctx *gin.Context) {
 // @Tags Orders
 // @Produce		json
 // @Success 200 {object} model.Success "Объект успешно удален"
+// @Failure 400 {string} model.Error "Invalid request"
+// @Failure 401 {object} model.Error "Anauthorized"
+// @Failure 404 {object} model.Error "Not found"
 // @Failure 500 {string} string "Internal"
 // @Param id path string true "id заказа"
 // @Router /api/v1/orders/{id} [delete]
@@ -135,10 +157,15 @@ func (h *Handler) DeleteOrder(ctx *gin.Context) {
 	userID := ctx.GetInt(userIDKey)
 	id, err := service.ParseInt32(idStr)
 	if err != nil {
-		log.Fatal(err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID заказа"})
+		return
 	}
 	err = h.Services.Order.Delete(id, int32(userID))
 	if err != nil {
+		if strings.Contains(err.Error(), "заказ не найден") {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

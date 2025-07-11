@@ -122,7 +122,7 @@ func (or *OrdersRepository) GetByID(id, userID int32, role model.UserRole, ctx c
 	err := or.db.GetContext(ctx, &order, query, args...)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("заказ не найден или доступ запрещен")
+			return nil, fmt.Errorf("заказ не найден или не принадлежит пользователю")
 		}
 		return nil, fmt.Errorf("ошибка получения заказа: %w", err)
 	}

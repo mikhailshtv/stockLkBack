@@ -7,6 +7,7 @@ type Product struct {
 	Name          string `json:"name" db:"name"`
 	PurchasePrice int32  `json:"purchasePrice,omitempty" db:"purchase_price"`
 	SellPrice     int32  `json:"sellPrice" db:"sell_price"`
+	Version       int    `json:"-" db:"version"`
 }
 
 type ProductRequestBody struct {

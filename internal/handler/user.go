@@ -1,9 +1,9 @@
 package handler
 
 import (
-	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"golang/stockLkBack/internal/model"
 
@@ -16,7 +16,7 @@ import (
 // @Accept			json
 // @Produce		json
 // @Param user body model.UserCreateBody true "Объект пользователя"
-// @Success 200 {object} model.User
+// @Success 201 {object} model.User "Created"
 // @Failure 400 {object} model.Error "Invalid request"
 // @Failure 500 {object} model.Error "Internal"
 // @Router /api/v1/users [post].
@@ -74,6 +74,10 @@ func (h *Handler) Login(ctx *gin.Context) {
 // @Param user body model.UserEditBody true "Объект пользователя"
 // @Success 200 {object} model.User
 // @Failure 400 {object} model.Error "Invalid request"
+// @Failure 401 {object} model.Error "Anauthorized"
+// @Failure 404 {object} model.Error "Not found"
+// @Failure 422 {object} model.Error "Unprocessable Entity"
+// @Failure 500 {object} model.Error "Internal"
 // @Param id path string true "id пользователя"
 // @Router /api/v1/users/{id} [put]
 // @Security BearerAuth.
@@ -81,7 +85,8 @@ func (h *Handler) EditUser(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		log.Fatal(err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID пользователя"})
+		return
 	}
 	var userEdit model.UserEditBody
 	if err := ctx.ShouldBindJSON(&userEdit); err != nil {
@@ -89,14 +94,19 @@ func (h *Handler) EditUser(ctx *gin.Context) {
 		return
 	}
 	if userEdit.Email == "" && userEdit.FirstName == "" && userEdit.LastName == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Недопустимое тело запроса"})
-		ctx.Abort()
+		ctx.JSON(
+			http.StatusUnprocessableEntity,
+			gin.H{"error": "тело запроса должно содержать хотя бы одно поле для обновления"},
+		)
 		return
 	}
 	user, err := h.Services.User.Update(id, userEdit)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		ctx.Abort()
+		if strings.Contains(err.Error(), "пользователь не найден") {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	ctx.JSON(http.StatusOK, user)
@@ -110,6 +120,9 @@ func (h *Handler) EditUser(ctx *gin.Context) {
 // @Param user body model.UserRoleBody true "Объект с ролью пользователя"
 // @Success 200 {object} model.User
 // @Failure 400 {object} model.Error "Invalid request"
+// @Failure 401 {object} model.Error "Anauthorized"
+// @Failure 404 {object} model.Error "Not found"
+// @Failure 500 {object} model.Error "Internal"
 // @Param id path string true "id пользователя"
 // @Router /api/v1/users/{id}/role [patch]
 // @Security BearerAuth.
@@ -122,7 +135,8 @@ func (h *Handler) ChangeUserRole(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		log.Fatal(err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID пользователя"})
+		return
 	}
 	var userRole *model.UserRoleBody
 	if err := ctx.ShouldBindJSON(&userRole); err != nil {
@@ -136,7 +150,11 @@ func (h *Handler) ChangeUserRole(ctx *gin.Context) {
 
 	user, err := h.Services.User.ChangeUserRole(id, *userRole)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if strings.Contains(err.Error(), "пользователь не найден") {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -151,6 +169,9 @@ func (h *Handler) ChangeUserRole(ctx *gin.Context) {
 // @Param user body model.UserChangePasswordBody true "Объект с паролем пользователя"
 // @Success 200 {object} model.Success
 // @Failure 400 {object} model.Error "Invalid request"
+// @Failure 401 {object} model.Error "Anauthorized"
+// @Failure 404 {object} model.Error "Not found"
+// @Failure 500 {object} model.Error "Internal"
 // @Param id path string true "id пользователя"
 // @Router /api/v1/users/{id}/password [patch]
 // @Security BearerAuth.
@@ -158,7 +179,8 @@ func (h *Handler) ChangeUserPassword(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		log.Fatal(err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID пользователя"})
+		return
 	}
 	var userPassword model.UserChangePasswordBody
 	if err := ctx.ShouldBindJSON(&userPassword); err != nil {
@@ -172,7 +194,11 @@ func (h *Handler) ChangeUserPassword(ctx *gin.Context) {
 
 	success, err := h.Services.User.ChangePassword(id, userPassword)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if strings.Contains(err.Error(), "пользователь не найден") {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	ctx.JSON(http.StatusOK, success)
@@ -183,14 +209,14 @@ func (h *Handler) ChangeUserPassword(ctx *gin.Context) {
 // @Tags Users
 // @Produce		json
 // @Success 200 {object} []model.User
-// @Failure 400 {string} string "Invalid request"
+// @Failure 401 {object} model.Error "Anauthorized"
+// @Failure 500 {object} model.Error "Internal"
 // @Router /api/v1/users [get]
 // @Security BearerAuth.
 func (h *Handler) ListUsers(ctx *gin.Context) {
 	users, err := h.Services.User.GetAll()
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		ctx.Abort()
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	ctx.JSON(http.StatusOK, users)
@@ -201,7 +227,10 @@ func (h *Handler) ListUsers(ctx *gin.Context) {
 // @Tags Users
 // @Produce		json
 // @Success 200 {object} model.User
-// @Failure 400 {string} string "Invalid request"
+// @Failure 400 {object} model.Error "Invalid request"
+// @Failure 401 {object} model.Error "Anauthorized"
+// @Failure 404 {object} model.Error "Not found"
+// @Failure 500 {object} model.Error "Internal"
 // @Param id path string true "id пользователя"
 // @Router /api/v1/users/{id} [get]
 // @Security BearerAuth.
@@ -209,12 +238,16 @@ func (h *Handler) GetUserByID(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		log.Fatal(err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID пользователя"})
+		return
 	}
 	user, err := h.Services.User.GetByID(id)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		ctx.Abort()
+		if strings.Contains(err.Error(), "пользователь не найден") {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	ctx.JSON(http.StatusOK, user)
@@ -225,7 +258,10 @@ func (h *Handler) GetUserByID(ctx *gin.Context) {
 // @Tags Users
 // @Produce		json
 // @Success 200 {object} model.Success "Объект успешно удален"
-// @Failure 400 {string} string "Invalid request"
+// @Failure 400 {object} model.Error "Invalid request"
+// @Failure 401 {object} model.Error "Anauthorized"
+// @Failure 404 {object} model.Error "Not found"
+// @Failure 500 {object} model.Error "Internal"
 // @Param id path string true "id пользователя"
 // @Router /api/v1/users/{id} [delete]
 // @Security BearerAuth.
@@ -238,10 +274,15 @@ func (h *Handler) DeleteUser(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		log.Fatal(err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID пользователя"})
+		return
 	}
 	if err := h.Services.User.Delete(id); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if strings.Contains(err.Error(), "пользователь не найден") {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		ctx.Abort()
 		return
 	}

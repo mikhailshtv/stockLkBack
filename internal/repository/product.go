@@ -73,7 +73,7 @@ func (pr *ProductsRepository) GetByID(id int32, ctx context.Context) (*model.Pro
 		"SELECT * FROM products.products WHERE id = $1", id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("продукт с ID %d не найден: %w", id, err)
+			return nil, fmt.Errorf("продукт не найден: %w", err)
 		}
 		return nil, fmt.Errorf("ошибка при получении продукта: %w", err)
 	}
@@ -94,7 +94,7 @@ func (pr *ProductsRepository) Delete(id int32, ctx context.Context) (*model.Prod
 	err := pr.db.QueryRowxContext(ctx, query, id).StructScan(&deletedProduct)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("продукт с ID %d не найден: %w", id, err)
+			return nil, fmt.Errorf("продукт не найден: %w", err)
 		}
 		return nil, fmt.Errorf("ошибка удаления продукта: %w", err)
 	}
@@ -128,7 +128,7 @@ func (pr *ProductsRepository) Update(id int32, product model.Product, ctx contex
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("продукт с ID %d не найден", id)
+			return nil, fmt.Errorf("продукт не найден: %w", err)
 		}
 		if isDuplicateKeyError(err) {
 			return nil, fmt.Errorf("продукт с кодом %d уже существует", product.Code)
