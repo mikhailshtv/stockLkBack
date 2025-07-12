@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"golang/stockLkBack/internal/model"
+	"github.com/mikhailshtv/stockLkBack/internal/model"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -17,14 +17,15 @@ var (
 )
 
 // GenerateToken Функция для создания JWT токена.
-func GenerateToken(login string, role model.UserRole) (string, error) {
+func GenerateToken(userID int, login string, role model.UserRole) (string, error) {
 	// Устанавливаем срок действия токена (1 час)
 	expirationTime := time.Now().Add(1 * time.Hour)
 
 	// Создаем JWT токен
 	claims := &model.Claims{
-		Login: login,
-		Role:  role,
+		Login:  login,
+		Role:   role,
+		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: &jwt.NumericDate{Time: expirationTime},
 			Issuer:    "go-gin-jwt-example",

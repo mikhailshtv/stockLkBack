@@ -4,13 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
+	"math"
 	"net"
 	"time"
 
-	"golang/stockLkBack/internal/handler"
-	"golang/stockLkBack/internal/model"
-	"golang/stockLkBack/internal/repository"
+	"github.com/mikhailshtv/stockLkBack/internal/handler"
+	"github.com/mikhailshtv/stockLkBack/internal/model"
+	"github.com/mikhailshtv/stockLkBack/internal/repository"
 
 	"github.com/mikhailshtv/proto_api/pkg/grpc/v1/orders_api"
 	"google.golang.org/grpc"
@@ -19,7 +21,6 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -30,9 +31,9 @@ type server struct {
 
 func (s *server) GetOrders(
 	_ context.Context,
-	_ *emptypb.Empty,
+	req *orders_api.OrderGetAllRequest,
 ) (*orders_api.GetOrdersResponse, error) {
-	ordersAll, err := s.handler.Services.Order.GetAll()
+	ordersAll, err := s.handler.Services.Order.GetAll(int(req.UserId), model.UserRole(req.Role))
 	if err != nil {
 		log.Println(err.Error())
 		err = status.Errorf(codes.Internal, "Ошибка получения списка заказов")
@@ -60,7 +61,7 @@ func (s *server) GetOrders(
 
 func (s *server) GetOrder(
 	_ context.Context,
-	req *orders_api.OrderActionByIdRequest,
+	req *orders_api.OrderGetByIdRequest,
 ) (*orders_api.GetOrderResponse, error) {
 	orderID := req.GetId()
 	if orderID <= 0 {
@@ -71,7 +72,7 @@ func (s *server) GetOrder(
 		return nil, err
 	}
 
-	receivedOrder, err := s.handler.Services.Order.GetByID(orderID)
+	receivedOrder, err := s.handler.Services.Order.GetByID(int(orderID), int(req.UserId), model.UserRole(req.Role))
 	if err != nil {
 		if err.Error() == repository.NotFoundErrorMessage {
 			err = status.Errorf(codes.NotFound, "Объект не найден")
@@ -109,6 +110,7 @@ func (s *server) CreateOrder(
 	req *orders_api.OrderCreateRequest,
 ) (*orders_api.Order, error) {
 	products := req.Products
+	userID := req.UserId
 	productsJSON, err := json.Marshal(products)
 	if err != nil {
 		log.Println(err.Error())
@@ -123,7 +125,7 @@ func (s *server) CreateOrder(
 	if err != nil {
 		log.Println(err.Error())
 	}
-	order, err := s.handler.Services.Order.Create(orderReq)
+	order, err := s.handler.Services.Order.Create(orderReq, int(userID))
 	if err != nil {
 		log.Println(err.Error())
 		err = status.Errorf(codes.Internal, "Ошибка при создании заказа")
@@ -132,15 +134,7 @@ func (s *server) CreateOrder(
 		}
 	}
 
-	return &orders_api.Order{
-		Id:               order.ID,
-		Number:           order.Number,
-		TotalCost:        order.TotalCost,
-		CreatedDate:      timestamppb.New(order.CreatedDate),
-		LastModifiedDate: timestamppb.New(order.LastModifiedDate),
-		Status:           int32(order.Status),
-		Products:         products,
-	}, nil
+	return convertOrderToProto(order)
 }
 
 func (s *server) EditOrder(
@@ -148,6 +142,7 @@ func (s *server) EditOrder(
 	req *orders_api.OrderEditRequest,
 ) (*orders_api.Order, error) {
 	orderID := req.GetId()
+	userID := req.UserId
 	if orderID <= 0 {
 		err := status.Errorf(codes.InvalidArgument, "id должен быть больше чем 0")
 		if err != nil {
@@ -155,7 +150,6 @@ func (s *server) EditOrder(
 		}
 		return nil, err
 	}
-	products := req.Products
 
 	var orderReq model.OrderRequestBody
 	orderReqJSON, err := json.Marshal(req)
@@ -174,7 +168,7 @@ func (s *server) EditOrder(
 		}
 	}
 
-	order, err := s.handler.Services.Order.Update(orderID, orderReq)
+	order, err := s.handler.Services.Order.Update(int(orderID), orderReq, int(userID))
 	if err != nil {
 		log.Println(err.Error())
 		if err.Error() == repository.NotFoundErrorMessage {
@@ -191,22 +185,15 @@ func (s *server) EditOrder(
 		return nil, err
 	}
 
-	return &orders_api.Order{
-		Id:               order.ID,
-		Number:           order.Number,
-		TotalCost:        order.TotalCost,
-		CreatedDate:      timestamppb.New(order.CreatedDate),
-		LastModifiedDate: timestamppb.New(order.LastModifiedDate),
-		Status:           int32(order.Status),
-		Products:         products,
-	}, nil
+	return convertOrderToProto(order)
 }
 
 func (s *server) DeleteOrder(
 	_ context.Context,
-	req *orders_api.OrderActionByIdRequest,
+	req *orders_api.OrderDeleteRequest,
 ) (*orders_api.Success, error) {
 	orderID := req.GetId()
+	userID := req.UserId
 	if orderID <= 0 {
 		err := status.Errorf(codes.InvalidArgument, "id должен быть больше чем 0")
 		if err != nil {
@@ -215,7 +202,7 @@ func (s *server) DeleteOrder(
 		return nil, err
 	}
 
-	err := s.handler.Services.Order.Delete(orderID)
+	err := s.handler.Services.Order.Delete(int(orderID), int(userID))
 	if err != nil {
 		if err.Error() == repository.NotFoundErrorMessage {
 			err = status.Errorf(codes.NotFound, "Объект не найден")
@@ -297,4 +284,64 @@ func loggingInterceptor(
 	)
 
 	return resp, err
+}
+
+func convertOrderToProto(order *model.Order) (*orders_api.Order, error) {
+	id, err := safeIntToInt32(order.ID, "ID заказа")
+	if err != nil {
+		return nil, fmt.Errorf("ошибка валидации заказа: %w", err)
+	}
+
+	number, err := safeIntToInt32(order.Number, "номер заказа")
+	if err != nil {
+		return nil, fmt.Errorf("ошибка валидации номера: %w", err)
+	}
+
+	totalCost, err := safeIntToInt32(order.TotalCost, "общая стоимость")
+	if err != nil {
+		return nil, fmt.Errorf("ошибка валидации стоимости: %w", err)
+	}
+
+	protoProducts, err := convertProductsToProto(order.Products)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка конвертации продуктов: %w", err)
+	}
+
+	return &orders_api.Order{
+		Id:               id,
+		Number:           number,
+		TotalCost:        totalCost,
+		CreatedDate:      timestamppb.New(order.CreatedDate),
+		LastModifiedDate: timestamppb.New(order.LastModifiedDate),
+		Status: &orders_api.OrderStatus{
+			Key:         order.Status.Key,
+			DisplayName: order.Status.DisplayName,
+		},
+		Products: protoProducts,
+	}, nil
+}
+
+func safeIntToInt32(value int, fieldName string) (int32, error) {
+	if value > math.MaxInt32 {
+		return 0, fmt.Errorf("значение %d для поля '%s' превышает максимально допустимое %d",
+			value, fieldName, math.MaxInt32)
+	}
+	if value < math.MinInt32 {
+		return 0, fmt.Errorf("значение %d для поля '%s' меньше минимально допустимого %d",
+			value, fieldName, math.MinInt32)
+	}
+	return int32(value), nil
+}
+
+func convertProductsToProto(products []model.Product) ([]*orders_api.Product, error) {
+	protoProductsJSON, err := json.Marshal(products)
+	if err != nil {
+		return []*orders_api.Product{}, err
+	}
+	var protoProducts []*orders_api.Product
+	err = json.Unmarshal(protoProductsJSON, &protoProducts)
+	if err != nil {
+		return []*orders_api.Product{}, err
+	}
+	return protoProducts, nil
 }

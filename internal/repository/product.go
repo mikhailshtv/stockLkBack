@@ -1,135 +1,142 @@
 package repository
 
 import (
-	"encoding/json"
+	"context"
+	"database/sql"
 	"errors"
-	"io"
-	"log"
-	"os"
-	"slices"
+	"fmt"
 
-	"golang/stockLkBack/internal/model"
+	"github.com/mikhailshtv/stockLkBack/internal/model"
 
-	"go.mongodb.org/mongo-driver/mongo"
+	"github.com/go-redis/redis/v8"
+	"github.com/jmoiron/sqlx"
 )
 
 type ProductsRepository struct {
-	Products   []model.Product
-	ProductLen int
-	db         *mongo.Database
+	db    *sqlx.DB
+	redis *redis.Client
 }
 
-func NewProductsRepository(db *mongo.Database) *ProductsRepository {
-	return &ProductsRepository{db: db}
+func NewProductsRepository(db *sqlx.DB, redis *redis.Client) *ProductsRepository {
+	return &ProductsRepository{db: db, redis: redis}
 }
 
-func (pr *ProductsRepository) Create(productRequest model.ProductRequestBody) (*model.Product, error) {
-	var product model.Product
-	if pr.ProductLen > 0 {
-		lastProduct := pr.Products[pr.ProductLen-1]
-		product.ID = lastProduct.ID + 1
-	} else {
-		product.ID = 1
+func (pr *ProductsRepository) Create(ctx context.Context, product model.Product) (*model.Product, error) {
+	const query = `
+		INSERT INTO products.products (
+			code,
+			name,
+			quantity,
+			purchase_price,
+			sell_price
+		) VALUES ($1, $2, $3, $4, $5)
+		RETURNING id
+	`
+	err := pr.db.QueryRowContext(
+		ctx,
+		query,
+		product.Code,
+		product.Name,
+		product.Quantity,
+		product.PurchasePrice,
+		product.SellPrice,
+	).Scan(&product.ID)
+	if err != nil {
+		if isDuplicateKeyError(err) {
+			return nil, fmt.Errorf("продукт с кодом %d уже существует", product.Code)
+		}
+		return nil, fmt.Errorf("ошибка при создании продукта: %w", err)
 	}
-	product.Code = productRequest.Code
-	product.Name = productRequest.Name
-	product.Quantity = productRequest.Quantity
-	product.PurchasePrice = productRequest.PurchasePrice
-	product.SalePrice = productRequest.SalePrice
 
-	pr.Products = append(pr.Products, product)
-	pr.ProductLen = len(pr.Products)
+	return &product, nil
+}
 
-	if err := saveProductsToFile(pr.Products); err != nil {
-		return nil, err
+func (pr *ProductsRepository) GetAll(ctx context.Context) ([]model.Product, error) {
+	const query = `SELECT * FROM products.products`
+
+	var products []model.Product
+	err := pr.db.SelectContext(ctx, &products, query)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []model.Product{}, nil
+		}
+		return nil, fmt.Errorf("ошибка при получении списка продуктов: %w", err)
+	}
+
+	return products, nil
+}
+
+func (pr *ProductsRepository) GetByID(ctx context.Context, id int) (*model.Product, error) {
+	var product model.Product
+	err := pr.db.GetContext(ctx, &product,
+		"SELECT * FROM products.products WHERE id = $1", id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("продукт не найден: %w", err)
+		}
+		return nil, fmt.Errorf("ошибка при получении продукта: %w", err)
 	}
 	return &product, nil
 }
 
-func (pr *ProductsRepository) GetAll() ([]model.Product, error) {
-	return pr.Products, nil
-}
+func (pr *ProductsRepository) Delete(ctx context.Context, id int) (*model.Product, error) {
+	const query = `
+		WITH deleted AS (
+			DELETE FROM products.products 
+			WHERE id = $1
+			RETURNING *
+		)
+		SELECT * FROM deleted
+	`
 
-func (pr *ProductsRepository) GetByID(id int32) (*model.Product, error) {
-	idx := slices.IndexFunc(pr.Products, func(product model.Product) bool { return product.ID == id })
-	if idx == -1 {
-		return nil, errors.New(NotFoundErrorMessage)
-	}
-	return &pr.Products[idx], nil
-}
-
-func (pr *ProductsRepository) Delete(id int32) error {
-	pr.Products = slices.DeleteFunc(pr.Products, func(product model.Product) bool { return product.ID == id })
-	pr.ProductLen = len(pr.Products)
-	if err := saveProductsToFile(pr.Products); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (pr *ProductsRepository) Update(id int32, product model.ProductRequestBody) (*model.Product, error) {
-	idx := slices.IndexFunc(pr.Products, func(product model.Product) bool { return product.ID == id })
-	if idx == -1 {
-		return nil, errors.New(NotFoundErrorMessage)
-	}
-	pr.Products[idx].Code = product.Code
-	pr.Products[idx].Name = product.Name
-	pr.Products[idx].Quantity = product.Quantity
-	pr.Products[idx].PurchasePrice = product.PurchasePrice
-	pr.Products[idx].SalePrice = product.SalePrice
-
-	if err := saveProductsToFile(pr.Products); err != nil {
-		return nil, err
-	}
-	return &pr.Products[idx], nil
-}
-
-func (pr *ProductsRepository) RestoreProductsFromFile(path string) {
-	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
-		return
-	}
-	file, err := os.Open(path)
+	deletedProduct := model.Product{}
+	err := pr.db.QueryRowxContext(ctx, query, id).StructScan(&deletedProduct)
 	if err != nil {
-		log.Printf("Ошибка открытия файла: %v\n", err.Error())
-		return
-	}
-	defer file.Close()
-
-	data, err := io.ReadAll(file)
-	if err != nil {
-		log.Printf("Ошибка чтения из файла: %v\n", err.Error())
-		return
-	}
-	if len(data) == 0 {
-		return
-	}
-
-	jsonError := json.Unmarshal(data, &pr.Products)
-	pr.ProductLen = len(pr.Products)
-	if jsonError != nil {
-		log.Printf("Ошибка десериализации: %v\n", jsonError.Error())
-		return
-	}
-}
-
-func saveProductsToFile(products []model.Product) error {
-	outputPath := "./assets"
-	if _, err := os.Stat(outputPath); errors.Is(err, os.ErrNotExist) {
-		err := os.Mkdir(outputPath, os.ModePerm)
-		if err != nil {
-			log.Printf("Ошибка создания каталога: %v\n", err.Error())
-			return err
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("продукт не найден: %w", err)
 		}
+		return nil, fmt.Errorf("ошибка удаления продукта: %w", err)
 	}
-	path := "./assets/products.json"
-	json, err := json.Marshal(products)
+
+	return &deletedProduct, nil
+}
+
+func (pr *ProductsRepository) Update(ctx context.Context, id int, product model.Product) (*model.Product, error) {
+	const query = `
+		UPDATE products.products SET
+			code = $1,
+			name = $2,
+			quantity = $3,
+			purchase_price = $4,
+			sell_price = $5
+		WHERE id = $6
+		RETURNING *
+	`
+
+	updatedProduct := model.Product{}
+	err := pr.db.QueryRowxContext(
+		ctx,
+		query,
+		product.Code,
+		product.Name,
+		product.Quantity,
+		product.PurchasePrice,
+		product.SellPrice,
+		id,
+	).StructScan(&updatedProduct)
 	if err != nil {
-		log.Printf("Ошибка конвертирования в json: %v\n", err.Error())
-		return err
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("продукт не найден: %w", err)
+		}
+		if isDuplicateKeyError(err) {
+			return nil, fmt.Errorf("продукт с кодом %d уже существует", product.Code)
+		}
+		return nil, fmt.Errorf("ошибка обновления продукта: %w", err)
 	}
-	if err := os.WriteFile(path, json, 0o600); err != nil {
-		log.Printf("Ошибка записи в файл: %v\n", err.Error())
-		return err
-	}
-	return nil
+
+	return &updatedProduct, nil
+}
+
+func (pr *ProductsRepository) WriteLog(result any, operation, status, tableName string) (int64, error) {
+	return WriteLog(result, operation, status, tableName, pr.redis)
 }

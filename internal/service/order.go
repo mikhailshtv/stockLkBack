@@ -1,84 +1,87 @@
 package service
 
 import (
+	"context"
 	"log"
 
-	"golang/stockLkBack/internal/model"
-	"golang/stockLkBack/internal/repository"
+	"github.com/mikhailshtv/stockLkBack/internal/model"
+	"github.com/mikhailshtv/stockLkBack/internal/repository"
 )
 
 const (
-	logErrorStatus   = "Error"
-	logSuccessStatus = "Success"
+	logErrorStatus     = "Error"
+	logSuccessStatus   = "Success"
+	logOrdersTableName = "logOrder"
 )
 
 type OrdersService struct {
 	repo repository.Order
+	ctx  context.Context
 }
 
-func NewOrdersService(repo repository.Order) *OrdersService {
-	return &OrdersService{repo: repo}
+func NewOrdersService(ctx context.Context, repo repository.Order) *OrdersService {
+	return &OrdersService{repo: repo, ctx: ctx}
 }
 
-func (s *OrdersService) Create(order model.OrderRequestBody) (*model.Order, error) {
-	createdOrder, err := s.repo.Create(order)
+func (s *OrdersService) Create(order model.OrderRequestBody, userID int) (*model.Order, error) {
+	createdOrder, err := s.repo.Create(s.ctx, order, userID)
 	var result any
 	var status string
 	if err != nil {
-		result = err
+		result = model.Error{Error: err.Error()}
 		status = logErrorStatus
 	} else {
 		result = createdOrder
 		status = logSuccessStatus
 	}
 
-	_, logErr := s.repo.WriteLog(result, "Create", status)
+	_, logErr := s.repo.WriteLog(result, "Create", status, logOrdersTableName)
 	if logErr != nil {
 		log.Println(logErr.Error())
 	}
 	return createdOrder, err
 }
 
-func (s *OrdersService) GetAll() ([]model.Order, error) {
-	return s.repo.GetAll()
+func (s *OrdersService) GetAll(userID int, role model.UserRole) ([]model.Order, error) {
+	return s.repo.GetAll(s.ctx, userID, role)
 }
 
-func (s *OrdersService) GetByID(id int32) (*model.Order, error) {
-	return s.repo.GetByID(id)
+func (s *OrdersService) GetByID(id, userID int, role model.UserRole) (*model.Order, error) {
+	return s.repo.GetByID(s.ctx, id, userID, role)
 }
 
-func (s *OrdersService) Delete(id int32) error {
-	delitedOrder, err := s.repo.Delete(id)
+func (s *OrdersService) Delete(id, userID int) error {
+	delitedOrder, err := s.repo.Delete(s.ctx, id, userID)
 	var result any
 	var status string
 	if err != nil {
-		result = err
+		result = model.Error{Error: err.Error()}
 		status = logErrorStatus
 	} else {
 		result = delitedOrder
 		status = logSuccessStatus
 	}
 
-	_, logErr := s.repo.WriteLog(result, "Delete", status)
+	_, logErr := s.repo.WriteLog(result, "Delete", status, logOrdersTableName)
 	if logErr != nil {
 		log.Println(logErr.Error())
 	}
 	return err
 }
 
-func (s *OrdersService) Update(id int32, order model.OrderRequestBody) (*model.Order, error) {
-	updatedOrder, err := s.repo.Update(id, order)
+func (s *OrdersService) Update(id int, order model.OrderRequestBody, userID int) (*model.Order, error) {
+	updatedOrder, err := s.repo.Update(s.ctx, id, order, userID)
 	var result any
 	var status string
 	if err != nil {
-		result = err
+		result = model.Error{Error: err.Error()}
 		status = logErrorStatus
 	} else {
 		result = updatedOrder
 		status = logSuccessStatus
 	}
 
-	_, logErr := s.repo.WriteLog(result, "Update", status)
+	_, logErr := s.repo.WriteLog(result, "Update", status, logOrdersTableName)
 	if logErr != nil {
 		log.Println(logErr.Error())
 	}

@@ -10,9 +10,9 @@ import (
 	"syscall"
 	"time"
 
-	"golang/stockLkBack/internal/config"
-	"golang/stockLkBack/internal/handler"
-	"golang/stockLkBack/internal/middleware"
+	"github.com/mikhailshtv/stockLkBack/internal/config"
+	"github.com/mikhailshtv/stockLkBack/internal/handler"
+	"github.com/mikhailshtv/stockLkBack/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 )

@@ -21,13 +21,13 @@ linters-settings:
   gci:
     sections:
       - standard
-      - prefix(golang/stockLkBack/)
+      - prefix(github.com/mikhailshtv/stockLkBack)
       - default
     skip-generated: true
     custom-order: true
   gofumpt:
     extra-rules: true
-    module-path: "golang/stockLkBack"
+    module-path: "github.com/mikhailshtv/stockLkBack"
 
 linters:
   disable-all: true

@@ -50,6 +50,18 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
+                    },
+                    "401": {
+                        "description": "Anauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
                     }
                 }
             }
@@ -58,7 +70,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "produces": [
@@ -78,8 +90,8 @@ const docTemplate = `{
                             }
                         }
                     },
-                    "400": {
-                        "description": "Invalid request",
+                    "500": {
+                        "description": "Internal",
                         "schema": {
                             "type": "string"
                         }
@@ -89,7 +101,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "consumes": [
@@ -125,6 +137,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
+                    },
+                    "500": {
+                        "description": "Internal",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
+                        }
                     }
                 }
             }
@@ -133,7 +151,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "produces": [
@@ -170,7 +188,7 @@ const docTemplate = `{
             "delete": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "produces": [
@@ -196,8 +214,8 @@ const docTemplate = `{
                             "$ref": "#/definitions/model.Success"
                         }
                     },
-                    "400": {
-                        "description": "Invalid request",
+                    "500": {
+                        "description": "Internal",
                         "schema": {
                             "type": "string"
                         }
@@ -209,7 +227,7 @@ const docTemplate = `{
             "put": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "consumes": [
@@ -260,7 +278,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "produces": [
@@ -291,7 +309,7 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "consumes": [
@@ -335,7 +353,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "produces": [
@@ -372,7 +390,7 @@ const docTemplate = `{
             "put": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "consumes": [
@@ -421,7 +439,7 @@ const docTemplate = `{
             "delete": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "produces": [
@@ -460,7 +478,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "produces": [
@@ -489,11 +507,6 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "consumes": [
                     "application/json"
                 ],
@@ -535,7 +548,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "produces": [
@@ -572,7 +585,7 @@ const docTemplate = `{
             "put": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "consumes": [
@@ -621,7 +634,7 @@ const docTemplate = `{
             "delete": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "produces": [
@@ -660,7 +673,7 @@ const docTemplate = `{
             "patch": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "consumes": [
@@ -711,7 +724,7 @@ const docTemplate = `{
             "patch": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "consumes": [
@@ -826,17 +839,15 @@ const docTemplate = `{
             }
         },
         "model.OrderStatus": {
-            "type": "integer",
-            "enum": [
-                1,
-                2,
-                3
-            ],
-            "x-enum-varnames": [
-                "Active",
-                "Executed",
-                "Deleted"
-            ]
+            "type": "object",
+            "properties": {
+                "displayName": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
+                }
+            }
         },
         "model.Product": {
             "type": "object",
@@ -856,7 +867,7 @@ const docTemplate = `{
                 "quantity": {
                     "type": "integer"
                 },
-                "salePrice": {
+                "sellPrice": {
                     "type": "integer"
                 }
             }
@@ -876,7 +887,7 @@ const docTemplate = `{
                 "quantity": {
                     "type": "integer"
                 },
-                "salePrice": {
+                "sellPrice": {
                     "type": "integer"
                 }
             }
@@ -985,14 +996,14 @@ const docTemplate = `{
             }
         },
         "model.UserRole": {
-            "type": "integer",
+            "type": "string",
             "enum": [
-                1,
-                2
+                "client",
+                "employee"
             ],
             "x-enum-varnames": [
-                "Client",
-                "Employee"
+                "RoleClient",
+                "RoleEmployee"
             ]
         },
         "model.UserRoleBody": {

@@ -1,6 +1,11 @@
 package handler
 
-import "golang/stockLkBack/internal/service"
+import "github.com/mikhailshtv/stockLkBack/internal/service"
+
+const (
+	userRoleKey = "role"
+	userIDKey   = "userId"
+)
 
 type Handler struct {
 	Services *service.Service

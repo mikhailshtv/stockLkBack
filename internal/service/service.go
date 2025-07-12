@@ -1,28 +1,29 @@
 package service
 
 import (
+	"context"
 	"strconv"
 
-	"golang/stockLkBack/internal/model"
-	"golang/stockLkBack/internal/repository"
+	"github.com/mikhailshtv/stockLkBack/internal/model"
+	"github.com/mikhailshtv/stockLkBack/internal/repository"
 )
 
 //go:generate mockgen -source=service.go -destination=mocks/mock.go
 
 type Order interface {
-	Create(order model.OrderRequestBody) (*model.Order, error)
-	GetAll() ([]model.Order, error)
-	GetByID(id int32) (*model.Order, error)
-	Delete(id int32) error
-	Update(id int32, order model.OrderRequestBody) (*model.Order, error)
+	Create(order model.OrderRequestBody, userID int) (*model.Order, error)
+	GetAll(userID int, role model.UserRole) ([]model.Order, error)
+	GetByID(id, userID int, role model.UserRole) (*model.Order, error)
+	Delete(id, userID int) error
+	Update(id int, order model.OrderRequestBody, userID int) (*model.Order, error)
 }
 
 type Product interface {
-	Create(product model.ProductRequestBody) (*model.Product, error)
+	Create(product model.Product) (*model.Product, error)
 	GetAll() ([]model.Product, error)
-	GetByID(id int32) (*model.Product, error)
-	Delete(id int32) error
-	Update(id int32, product model.ProductRequestBody) (*model.Product, error)
+	GetByID(id int) (*model.Product, error)
+	Delete(id int) error
+	Update(id int, product model.Product) (*model.Product, error)
 }
 
 type User interface {
@@ -42,11 +43,11 @@ type Service struct {
 	User
 }
 
-func NewService(repo *repository.Repository) *Service {
+func NewService(ctx context.Context, repo *repository.Repository) *Service {
 	return &Service{
-		Order:   NewOrdersService(repo.Order),
-		Product: NewProductsService(repo.Product),
-		User:    NewUsersService(repo.User),
+		Order:   NewOrdersService(ctx, repo.Order),
+		Product: NewProductsService(ctx, repo.Product),
+		User:    NewUsersService(ctx, repo.User),
 	}
 }
 

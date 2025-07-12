@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"golang/stockLkBack/internal/utils/jwtgen"
+	"github.com/mikhailshtv/stockLkBack/internal/utils/jwtgen"
 
 	"github.com/gin-gonic/gin"
 )
@@ -35,6 +35,8 @@ func TokenAuthMiddleware() gin.HandlerFunc {
 
 		// Если токен валиден, добавляем пользователя в контекст запроса
 		c.Set("login", claims.Login)
+		c.Set("role", claims.Role)
+		c.Set("userId", claims.UserID)
 
 		c.Next()
 	}
