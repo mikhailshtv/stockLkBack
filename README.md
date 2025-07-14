@@ -1,3 +1,4 @@
+[![Go Report Card](https://goreportcard.com/badge/github.com/mikhailshtv/stockLkBack)](https://goreportcard.com/report/github.com/mikhailshtv/stockLkBack)
 # stockLkBack (Сервис управления складом)
 
 ## Требуется реализовать сервис для управления товарами на скаладе продавца:
@@ -12,5 +13,3 @@
     Поля: наименование, количество, артикул, закупочная цена, цена продажи.
 2. Заказ: 
     Поля: номер, дата создания, дата изменения, статус, сумма. (возможно ещё кем создан, кем изменён).
-
-[![Go Report Card](https://goreportcard.com/badge/github.com/mikhailshtv/stockLkBack)](https://goreportcard.com/report/github.com/mikhailshtv/stockLkBack)
