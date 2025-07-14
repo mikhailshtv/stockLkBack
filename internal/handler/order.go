@@ -42,13 +42,13 @@ func (h *Handler) CreateOrder(ctx *gin.Context) {
 // @Tags Orders
 // @Accept			json
 // @Produce		json
+// @Param id path string true "id заказа"
 // @Param order body model.OrderRequestBody true "Объект заказа"
 // @Success 200 {object} model.Order
 // @Failure 400 {object} model.Error "Invalid request"
 // @Failure 401 {object} model.Error "Anauthorized"
 // @Failure 404 {object} model.Error "Not found"
 // @Failure 500 {object} model.Error "Internal"
-// @Param id path string true "id заказа"
 // @Router /api/v1/orders{id} [put]
 // @Security BearerAuth.
 func (h *Handler) EditOrder(ctx *gin.Context) {
@@ -178,13 +178,14 @@ func (h *Handler) DeleteOrder(ctx *gin.Context) {
 // @Summary Изменение статуса заказа
 // @Tags Orders
 // @Produce		json
+// @Param id path string true "id заказа"
+// @Param order body model.OrderStatusRequest true "Объект статуса заказа"
 // @Success 200 {object} model.Order "Ok"
 // @Failure 400 {string} model.Error "Invalid request"
 // @Failure 401 {object} model.Error "Anauthorized"
 // @Failure 404 {object} model.Error "Not found"
 // @Failure 500 {string} string "Internal"
-// @Param id path string true "id заказа"
-// @Router /api/v1/orders/{id} [delete]
+// @Router /api/v1/orders/{id} [patch]
 // @Security BearerAuth.
 func (h *Handler) ChangeOrderStatus(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")

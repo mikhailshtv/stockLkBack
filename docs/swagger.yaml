@@ -29,14 +29,27 @@ definitions:
         $ref: '#/definitions/model.OrderStatus'
       totalCost:
         type: integer
+      userId:
+        type: integer
     required:
     - products
+    type: object
+  model.OrderProduct:
+    properties:
+      productId:
+        type: integer
+      quantity:
+        description: Количество покупаемых товаров
+        type: integer
+      sellPrice:
+        description: Цена товара на момент создания заказа
+        type: integer
     type: object
   model.OrderRequestBody:
     properties:
       products:
         items:
-          $ref: '#/definitions/model.Product'
+          $ref: '#/definitions/model.OrderProduct'
         type: array
     required:
     - products
@@ -47,6 +60,11 @@ definitions:
         type: string
       key:
         type: string
+    type: object
+  model.OrderStatusRequest:
+    properties:
+      status:
+        $ref: '#/definitions/model.OrderStatus'
     type: object
   model.Product:
     properties:
@@ -112,11 +130,14 @@ definitions:
     type: object
   model.UserChangePasswordBody:
     properties:
+      oldPassword:
+        type: string
       password:
         type: string
       passwordConfirm:
         type: string
     required:
+    - oldPassword
     - password
     - passwordConfirm
     type: object
@@ -210,6 +231,14 @@ paths:
             items:
               $ref: '#/definitions/model.Order'
             type: array
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/model.Error'
+        "401":
+          description: Anauthorized
+          schema:
+            $ref: '#/definitions/model.Error'
         "500":
           description: Internal
           schema:
@@ -232,12 +261,16 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
+        "201":
+          description: Created
           schema:
             $ref: '#/definitions/model.Order'
         "400":
           description: Invalid request
+          schema:
+            $ref: '#/definitions/model.Error'
+        "401":
+          description: Anauthorized
           schema:
             $ref: '#/definitions/model.Error'
         "500":
@@ -264,6 +297,18 @@ paths:
           description: Объект успешно удален
           schema:
             $ref: '#/definitions/model.Success'
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+        "401":
+          description: Anauthorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "404":
+          description: Not found
+          schema:
+            $ref: '#/definitions/model.Error'
         "500":
           description: Internal
           schema:
@@ -291,9 +336,62 @@ paths:
           description: Invalid request
           schema:
             type: string
+        "401":
+          description: Anauthorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "404":
+          description: Not found
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal
+          schema:
+            $ref: '#/definitions/model.Error'
       security:
       - BearerAuth.: []
       summary: Получение заказа по id
+      tags:
+      - Orders
+    patch:
+      parameters:
+      - description: id заказа
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Объект статуса заказа
+        in: body
+        name: order
+        required: true
+        schema:
+          $ref: '#/definitions/model.OrderStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ok
+          schema:
+            $ref: '#/definitions/model.Order'
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+        "401":
+          description: Anauthorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "404":
+          description: Not found
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal
+          schema:
+            type: string
+      security:
+      - BearerAuth.: []
+      summary: Изменение статуса заказа
       tags:
       - Orders
   /api/v1/orders{id}:
@@ -301,17 +399,17 @@ paths:
       consumes:
       - application/json
       parameters:
+      - description: id заказа
+        in: path
+        name: id
+        required: true
+        type: string
       - description: Объект заказа
         in: body
         name: order
         required: true
         schema:
           $ref: '#/definitions/model.OrderRequestBody'
-      - description: id заказа
-        in: path
-        name: id
-        required: true
-        type: string
       produces:
       - application/json
       responses:
@@ -321,6 +419,18 @@ paths:
             $ref: '#/definitions/model.Order'
         "400":
           description: Invalid request
+          schema:
+            $ref: '#/definitions/model.Error'
+        "401":
+          description: Anauthorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "404":
+          description: Not found
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal
           schema:
             $ref: '#/definitions/model.Error'
       security:
@@ -339,10 +449,14 @@ paths:
             items:
               $ref: '#/definitions/model.Product'
             type: array
-        "400":
-          description: Invalid request
+        "401":
+          description: Anauthorized
           schema:
-            type: string
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal
+          schema:
+            $ref: '#/definitions/model.Error'
       security:
       - BearerAuth.: []
       summary: Список продуктов
@@ -361,12 +475,20 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
+        "201":
+          description: Created
           schema:
             $ref: '#/definitions/model.Product'
         "400":
           description: Invalid request
+          schema:
+            $ref: '#/definitions/model.Error'
+        "401":
+          description: Anauthorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal
           schema:
             $ref: '#/definitions/model.Error'
       security:
@@ -393,6 +515,18 @@ paths:
           description: Invalid request
           schema:
             type: string
+        "401":
+          description: Anauthorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "404":
+          description: Not found
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal
+          schema:
+            $ref: '#/definitions/model.Error'
       security:
       - BearerAuth.: []
       summary: Удаление продукта
@@ -416,6 +550,18 @@ paths:
           description: Invalid request
           schema:
             type: string
+        "401":
+          description: Anauthorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "404":
+          description: Not found
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal
+          schema:
+            $ref: '#/definitions/model.Error'
       security:
       - BearerAuth.: []
       summary: Получение продукта по id
@@ -447,6 +593,18 @@ paths:
           description: Invalid request
           schema:
             $ref: '#/definitions/model.Error'
+        "401":
+          description: Anauthorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "404":
+          description: Not found
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal
+          schema:
+            $ref: '#/definitions/model.Error'
       security:
       - BearerAuth.: []
       summary: Редактирование продукта
@@ -463,10 +621,14 @@ paths:
             items:
               $ref: '#/definitions/model.User'
             type: array
-        "400":
-          description: Invalid request
+        "401":
+          description: Anauthorized
           schema:
-            type: string
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal
+          schema:
+            $ref: '#/definitions/model.Error'
       security:
       - BearerAuth.: []
       summary: Список пользователей
@@ -485,12 +647,16 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
+        "201":
+          description: Created
           schema:
             $ref: '#/definitions/model.User'
         "400":
           description: Invalid request
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal
           schema:
             $ref: '#/definitions/model.Error'
       summary: Создание/регистрация пользователя
@@ -514,7 +680,19 @@ paths:
         "400":
           description: Invalid request
           schema:
-            type: string
+            $ref: '#/definitions/model.Error'
+        "401":
+          description: Anauthorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "404":
+          description: Not found
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal
+          schema:
+            $ref: '#/definitions/model.Error'
       security:
       - BearerAuth.: []
       summary: Удаление пользователя
@@ -537,7 +715,19 @@ paths:
         "400":
           description: Invalid request
           schema:
-            type: string
+            $ref: '#/definitions/model.Error'
+        "401":
+          description: Anauthorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "404":
+          description: Not found
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal
+          schema:
+            $ref: '#/definitions/model.Error'
       security:
       - BearerAuth.: []
       summary: Получение пользователя по id
@@ -567,6 +757,22 @@ paths:
             $ref: '#/definitions/model.User'
         "400":
           description: Invalid request
+          schema:
+            $ref: '#/definitions/model.Error'
+        "401":
+          description: Anauthorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "404":
+          description: Not found
+          schema:
+            $ref: '#/definitions/model.Error'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal
           schema:
             $ref: '#/definitions/model.Error'
       security:
@@ -601,6 +807,18 @@ paths:
           description: Invalid request
           schema:
             $ref: '#/definitions/model.Error'
+        "401":
+          description: Anauthorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "404":
+          description: Not found
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal
+          schema:
+            $ref: '#/definitions/model.Error'
       security:
       - BearerAuth.: []
       summary: Изменение пароля пользователя
@@ -631,6 +849,18 @@ paths:
             $ref: '#/definitions/model.User'
         "400":
           description: Invalid request
+          schema:
+            $ref: '#/definitions/model.Error'
+        "401":
+          description: Anauthorized
+          schema:
+            $ref: '#/definitions/model.Error'
+        "404":
+          description: Not found
+          schema:
+            $ref: '#/definitions/model.Error'
+        "500":
+          description: Internal
           schema:
             $ref: '#/definitions/model.Error'
       security:
