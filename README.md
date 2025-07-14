@@ -1,4 +1,5 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/mikhailshtv/stockLkBack)](https://goreportcard.com/report/github.com/mikhailshtv/stockLkBack)
+[![CI Pipeline](https://github.com/mikhailshtv/stockLkBack/actions/workflows/stockLk-github-ci.yml/badge.svg)](https://github.com/mikhailshtv/stockLkBack/actions/workflows/stockLk-github-ci.yml)
 # stockLkBack (Сервис управления складом)
 
 ## Требуется реализовать сервис для управления товарами на скаладе продавца:
