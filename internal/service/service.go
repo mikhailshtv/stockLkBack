@@ -16,6 +16,7 @@ type Order interface {
 	GetByID(id, userID int, role model.UserRole) (*model.Order, error)
 	Delete(id, userID int) error
 	Update(id int, order model.OrderRequestBody, userID int) (*model.Order, error)
+	UpdateStatus(id int, orderStatusRequest model.OrderStatusRequest, userID int) (*model.Order, error)
 }
 
 type Product interface {

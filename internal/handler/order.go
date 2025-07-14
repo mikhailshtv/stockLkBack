@@ -29,19 +29,6 @@ func (h *Handler) CreateOrder(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Некорректное тело запроса"})
 		return
 	}
-
-	// if userID > math.MaxInt32 || userID < math.MinInt32 {
-	// 	ctx.JSON(
-	// 		http.StatusBadRequest,
-	// 		gin.H{
-	// 			"error": fmt.Sprintf(
-	// 				"идентификатор пользователя %d превышает допустимый диапазон типа int32",
-	// 				userID,
-	// 			),
-	// 		},
-	// 	)
-	// 	return
-	// }
 	order, err := h.Services.Order.Create(orderReq, userID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -77,18 +64,6 @@ func (h *Handler) EditOrder(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	// if userID > math.MaxInt32 || userID < math.MinInt32 {
-	// 	ctx.JSON(
-	// 		http.StatusBadRequest,
-	// 		gin.H{
-	// 			"error": fmt.Sprintf(
-	// 				"идентификатор пользователя %d превышает допустимый диапазон типа int32",
-	// 				userID,
-	// 			),
-	// 		},
-	// 	)
-	// 	return
-	// }
 	orderResult, err := h.Services.Order.Update(id, order, userID)
 	if err != nil {
 		if strings.Contains(err.Error(), "заказ не найден") {
@@ -118,19 +93,6 @@ func (h *Handler) ListOrders(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Некорректная роль пользователя"})
 		return
 	}
-
-	// if userID > math.MaxInt32 || userID < math.MinInt32 {
-	// 	ctx.JSON(
-	// 		http.StatusBadRequest,
-	// 		gin.H{
-	// 			"error": fmt.Sprintf(
-	// 				"идентификатор пользователя %d превышает допустимый диапазон типа int32",
-	// 				userID,
-	// 			),
-	// 		},
-	// 	)
-	// 	return
-	// }
 	orders, err := h.Services.Order.GetAll(userID, role.(model.UserRole))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -164,18 +126,6 @@ func (h *Handler) GetOrderByID(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID заказа"})
 		return
 	}
-	// if userID > math.MaxInt32 || userID < math.MinInt32 {
-	// 	ctx.JSON(
-	// 		http.StatusBadRequest,
-	// 		gin.H{
-	// 			"error": fmt.Sprintf(
-	// 				"идентификатор пользователя %d превышает допустимый диапазон типа int32",
-	// 				userID,
-	// 			),
-	// 		},
-	// 	)
-	// 	return
-	// }
 	order, err := h.Services.Order.GetByID(id, userID, role.(model.UserRole))
 	if err != nil {
 		if strings.Contains(err.Error(), "заказ не найден") {
@@ -208,18 +158,6 @@ func (h *Handler) DeleteOrder(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID заказа"})
 		return
 	}
-	// if userID > math.MaxInt32 || userID < math.MinInt32 {
-	// 	ctx.JSON(
-	// 		http.StatusBadRequest,
-	// 		gin.H{
-	// 			"error": fmt.Sprintf(
-	// 				"идентификатор пользователя %d превышает допустимый диапазон типа int32",
-	// 				userID,
-	// 			),
-	// 		},
-	// 	)
-	// 	return
-	// }
 	err = h.Services.Order.Delete(id, userID)
 	if err != nil {
 		if strings.Contains(err.Error(), "заказ не найден") {
@@ -234,4 +172,41 @@ func (h *Handler) DeleteOrder(ctx *gin.Context) {
 		Message: "Объект успешно удален",
 	}
 	ctx.JSON(http.StatusOK, success)
+}
+
+// ChangeOrderStatus
+// @Summary Изменение статуса заказа
+// @Tags Orders
+// @Produce		json
+// @Success 200 {object} model.Order "Ok"
+// @Failure 400 {string} model.Error "Invalid request"
+// @Failure 401 {object} model.Error "Anauthorized"
+// @Failure 404 {object} model.Error "Not found"
+// @Failure 500 {string} string "Internal"
+// @Param id path string true "id заказа"
+// @Router /api/v1/orders/{id} [delete]
+// @Security BearerAuth.
+func (h *Handler) ChangeOrderStatus(ctx *gin.Context) {
+	idStr := ctx.Params.ByName("id")
+	userID := ctx.GetInt(userIDKey)
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID заказа"})
+		return
+	}
+	var order model.OrderStatusRequest
+	if err := ctx.ShouldBindJSON(&order); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	orderResult, err := h.Services.Order.UpdateStatus(id, order, userID)
+	if err != nil {
+		if strings.Contains(err.Error(), "заказ не найден") {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, orderResult)
 }
