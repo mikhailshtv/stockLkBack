@@ -199,6 +199,31 @@ func (or *OrdersRepository) Update(
 	return nil, fmt.Errorf("не удалось обновить заказ после %d попыток: %w", maxRetries, lastErr)
 }
 
+func (or *OrdersRepository) UpdateStatus(
+	ctx context.Context,
+	id int,
+	orderStatusRequest model.OrderStatusRequest,
+	userID int,
+) (*model.Order, error) {
+	var lastErr error
+
+	for i := 0; i < maxRetries; i++ {
+		order, err := or.tryUpdateStatus(ctx, id, orderStatusRequest, userID)
+		if err == nil {
+			return order, nil
+		}
+
+		lastErr = err
+		if !isRetryableError(err) {
+			return nil, err
+		}
+
+		time.Sleep(retryDelay)
+	}
+
+	return nil, fmt.Errorf("не удалось обновить статус заказа после %d попыток: %w", maxRetries, lastErr)
+}
+
 func (or *OrdersRepository) WriteLog(result any, operation, status, tableName string) (int64, error) {
 	return WriteLog(result, operation, status, tableName, or.redis)
 }
@@ -383,11 +408,11 @@ func (or *OrdersRepository) getOrderForUpdate(
 ) (*model.Order, error) {
 	var order model.Order
 	err := tx.GetContext(ctx, &order, `
-        SELECT *
-        FROM orders.orders 
-        WHERE id = $1 AND user_id = $2
-        FOR UPDATE
-    `, id, userID)
+		SELECT *
+		FROM orders.orders 
+		WHERE id = $1 AND user_id = $2
+		FOR UPDATE
+	`, id, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("заказ не найден или не принадлежит пользователю")
@@ -669,6 +694,104 @@ func (or *OrdersRepository) tryDeleteOrder(ctx context.Context, orderID, userID 
 	}
 
 	return &order, nil
+}
+
+func (or *OrdersRepository) tryUpdateStatus(
+	ctx context.Context,
+	id int,
+	orderStatusRequest model.OrderStatusRequest,
+	userID int,
+) (*model.Order, error) {
+	tx, err := or.db.BeginTxx(ctx, &sql.TxOptions{
+		Isolation: sql.LevelSerializable,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("ошибка начала транзакции: %w", err)
+	}
+	defer tx.Rollback()
+
+	// 1. Получаем текущий заказ с блокировкой
+	var order model.Order
+	query := `
+		SELECT id, order_number, status, user_id 
+		FROM orders.orders 
+		WHERE id = $1
+		AND user_id = $2
+		FOR UPDATE
+	`
+
+	err = tx.GetContext(ctx, &order, query, id, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("заказ не найден или доступ запрещен")
+		}
+		return nil, fmt.Errorf("ошибка получения заказа: %w", err)
+	}
+
+	// 2. Проверяем допустимость изменения статуса
+	if !isValidStatusTransition(order.Status, orderStatusRequest.Status) {
+		return nil, fmt.Errorf("недопустимый переход статуса из %s в %s",
+			order.Status.Key, orderStatusRequest.Status.Key)
+	}
+
+	// 3. Обновляем статус
+	_, err = tx.ExecContext(ctx, `
+		UPDATE orders.orders 
+		SET status = $1, last_modified_date = NOW()
+		WHERE id = $2
+	`, orderStatusRequest.Status, id)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка обновления статуса: %w", err)
+	}
+
+	// 4. Получаем обновленный заказ с товарами
+	err = tx.GetContext(ctx, &order, `
+		SELECT id, order_number, status, total_cost, 
+			created_date, last_modified_date, user_id
+		FROM orders.orders 
+		WHERE id = $1
+	`, id)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка получения заказа: %w", err)
+	}
+
+	err = tx.SelectContext(ctx, &order.Products, `
+		SELECT p.id, p.code, p.name, op.quantity, op.sell_price
+		FROM orders.order_products op
+		JOIN products.products p ON op.product_id = p.id
+		WHERE op.order_id = $1
+	`, id)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка получения товаров: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("ошибка фиксации транзакции: %w", err)
+	}
+
+	return &order, nil
+}
+
+// Пока единственный допустимый переход active -> executed,
+// но так хотя бы можно расширить варианты переходов, если добавятся новые статусы.
+func isValidStatusTransition(oldStatus, newStatus model.OrderStatus) bool {
+	validTransitions := map[string][]string{
+		"active":   {"executed"},
+		"executed": {},
+		"deleted":  {},
+	}
+
+	allowed, exists := validTransitions[oldStatus.Key]
+	if !exists {
+		return false
+	}
+
+	for _, s := range allowed {
+		if s == newStatus.Key {
+			return true
+		}
+	}
+	return false
 }
 
 func isRetryableError(err error) bool {

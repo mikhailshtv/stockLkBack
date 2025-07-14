@@ -45,6 +45,7 @@ func (a *App) Start(r *gin.Engine) error {
 			orders.GET("", middleware.TokenAuthMiddleware(), a.handler.ListOrders)
 			orders.GET("/:id", middleware.TokenAuthMiddleware(), a.handler.GetOrderByID)
 			orders.DELETE("/:id", middleware.TokenAuthMiddleware(), a.handler.DeleteOrder)
+			orders.PATCH("/:id", middleware.TokenAuthMiddleware(), a.handler.ChangeOrderStatus)
 		}
 		products := api.Group("/products")
 		{

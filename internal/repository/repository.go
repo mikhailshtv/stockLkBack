@@ -24,6 +24,12 @@ type Order interface {
 	GetByID(ctx context.Context, id, userID int, role model.UserRole) (*model.Order, error)
 	Delete(ctx context.Context, id, userID int) (*model.Order, error)
 	Update(ctx context.Context, id int, orderReq model.OrderRequestBody, userID int) (*model.Order, error)
+	UpdateStatus(
+		ctx context.Context,
+		id int,
+		orderStatusRequest model.OrderStatusRequest,
+		userID int,
+	) (*model.Order, error)
 	WriteLog(result any, operation, status, tableName string) (int64, error)
 }
 

@@ -46,6 +46,10 @@ type OrderRequestBody struct {
 	Products []OrderProduct `json:"products" binding:"required" bson:"products"`
 }
 
+type OrderStatusRequest struct {
+	Status OrderStatus `json:"status" db:"status"`
+}
+
 type OrderProduct struct {
 	ProductID int `json:"productId" bindings:"required" db:"product_id"`
 	Quantity  int `json:"quantity" bindings:"required" db:"quantity"`    // Количество покупаемых товаров
