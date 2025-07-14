@@ -497,3 +497,127 @@ func TestOrderService_Delete(t *testing.T) {
 		})
 	}
 }
+
+func TestOrderService_UpdateStatus(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	t.Cleanup(func() { ctrl.Finish() })
+	dbMock := mocks.NewMockOrder(ctrl)
+
+	type requestBody struct {
+		id   int
+		body model.OrderStatusRequest
+	}
+
+	tests := []struct {
+		name    string
+		mock    func()
+		args    requestBody
+		want    *model.Order
+		wantErr bool
+	}{
+		{
+			name: "success",
+			mock: func() {
+				dbMock.EXPECT().UpdateStatus(
+					1,
+					model.OrderStatusRequest{
+						Status: model.OrderStatus{
+							Key:         "executed",
+							DisplayName: "Выполнен",
+						},
+					}, 1,
+				).Return(
+					&model.Order{
+						ID:               1,
+						Number:           1,
+						TotalCost:        74000,
+						CreatedDate:      time.Date(2025, time.May, 25, 12, 17, 16, 550631000, time.UTC),
+						LastModifiedDate: time.Date(2025, time.June, 15, 12, 0o0, 0o0, 0, time.UTC),
+						Status:           model.StatusActive,
+						Products: []model.Product{
+							{
+								ID:            1,
+								Code:          14823,
+								Quantity:      215,
+								Name:          "Pizza",
+								PurchasePrice: 24000,
+								SellPrice:     74000,
+							},
+						},
+					}, nil,
+				)
+			},
+			args: requestBody{
+				id: 1,
+				body: model.OrderStatusRequest{
+					Status: model.OrderStatus{
+						Key:         "executed",
+						DisplayName: "Выполнен",
+					},
+				},
+			},
+			want: &model.Order{
+				ID:               1,
+				Number:           1,
+				TotalCost:        74000,
+				CreatedDate:      time.Date(2025, time.May, 25, 12, 17, 16, 550631000, time.UTC),
+				LastModifiedDate: time.Date(2025, time.June, 15, 12, 0o0, 0o0, 0, time.UTC),
+				Status:           model.StatusActive,
+				Products: []model.Product{
+					{
+						ID:            1,
+						Code:          14823,
+						Quantity:      215,
+						Name:          "Pizza",
+						PurchasePrice: 24000,
+						SellPrice:     74000,
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "error",
+			mock: func() {
+				dbMock.EXPECT().UpdateStatus(
+					1,
+					model.OrderStatusRequest{
+						Status: model.OrderStatus{
+							Key:         "executed",
+							DisplayName: "Выполнен",
+						},
+					}, 1,
+				).Return(
+					nil,
+					errors.New(repository.NotFoundErrorMessage),
+				)
+			},
+			args: requestBody{
+				id: 1,
+				body: model.OrderStatusRequest{
+					Status: model.OrderStatus{
+						Key:         "executed",
+						DisplayName: "Выполнен",
+					},
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			os := &Service{Order: dbMock}
+			tt.mock()
+			got, err := os.Order.UpdateStatus(tt.args.id, tt.args.body, 1)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Ошибка обноления заказа error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Ошибка обноления заказа got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

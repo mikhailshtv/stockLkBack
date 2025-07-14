@@ -87,3 +87,26 @@ func (s *OrdersService) Update(id int, order model.OrderRequestBody, userID int)
 	}
 	return updatedOrder, err
 }
+
+func (s *OrdersService) UpdateStatus(
+	id int,
+	orderStatusRequest model.OrderStatusRequest,
+	userID int,
+) (*model.Order, error) {
+	updatedOrder, err := s.repo.UpdateStatus(s.ctx, id, orderStatusRequest, userID)
+	var result any
+	var status string
+	if err != nil {
+		result = model.Error{Error: err.Error()}
+		status = logErrorStatus
+	} else {
+		result = updatedOrder
+		status = logSuccessStatus
+	}
+
+	_, logErr := s.repo.WriteLog(result, "UpdateStatus", status, logOrdersTableName)
+	if logErr != nil {
+		log.Println(logErr.Error())
+	}
+	return updatedOrder, err
+}
