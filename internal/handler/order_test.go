@@ -467,6 +467,100 @@ func TestHandler_DeleteOrder(t *testing.T) {
 	}
 }
 
+func TestHandler_ChangeOrderStatus(t *testing.T) {
+	type mockBehavior func(s *mock_service.MockOrder, requestBody model.OrderStatusRequest)
+
+	tests := []struct {
+		name                 string
+		inputBody            string
+		inputOrder           model.OrderStatusRequest
+		mockBehavior         mockBehavior
+		expectedStatusCode   int
+		expectedResponseBody string
+	}{
+		{
+			name: "Ok",
+			inputBody: `
+				{
+					"status":{
+						"key":"executed",
+						"displayName":"Выполнен"
+					}
+				}`,
+			inputOrder: model.OrderStatusRequest{
+				Status: model.OrderStatus{
+					Key:         "executed",
+					DisplayName: "Выполнен",
+				},
+			},
+			mockBehavior: func(s *mock_service.MockOrder, requestBody model.OrderStatusRequest) {
+				s.EXPECT().UpdateStatus(1, requestBody, 1).Return(
+					&model.Order{
+						ID:               1,
+						Number:           1,
+						TotalCost:        74000,
+						CreatedDate:      time.Date(2025, time.May, 25, 12, 17, 16, 550631000, time.UTC),
+						LastModifiedDate: time.Date(2025, time.May, 25, 12, 17, 16, 550631000, time.UTC),
+						Status:           model.StatusActive,
+						Products: []model.Product{
+							{
+								ID:        1,
+								Code:      14823,
+								Quantity:  1,
+								Name:      "Cheese",
+								SellPrice: 74000,
+							},
+						},
+						UserID: 1,
+					}, nil,
+				)
+			},
+			expectedStatusCode: 200,
+			expectedResponseBody: `
+				{
+					"id":1,
+					"number":1,
+					"totalCost":74000,
+					"createdDate":"2025-05-25T12:17:16.550631Z",
+					"lastModifiedDate":"2025-05-25T12:17:16.550631Z",
+					"status":{"key":"active","displayName":"Активный"},
+					"products":[
+						{
+							"id":1,
+							"code":14823,
+							"quantity":1,
+							"name":"Cheese",
+							"sellPrice":74000
+						}
+					],
+					"userId":1
+				}`,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			repo := repo(t)
+			test.mockBehavior(repo, test.inputOrder)
+			services := &service.Service{Order: repo}
+			handler := NewHandler(services)
+			r := gin.New()
+			r.PATCH("/orders/:id", func(ctx *gin.Context) {
+				ctx.Set("userId", 1)
+				handler.ChangeOrderStatus(ctx)
+			})
+
+			w := httptest.NewRecorder()
+			req := httptest.NewRequest("PATCH", "/orders/1", bytes.NewBufferString(test.inputBody))
+
+			r.ServeHTTP(w, req)
+
+			assert.Equal(t, w.Code, test.expectedStatusCode)
+			assert.JSONEq(t, test.expectedResponseBody, w.Body.String())
+		})
+	}
+}
+
 func repo(t *testing.T) *mock_service.MockOrder {
 	t.Helper()
 	c := gomock.NewController(t)
