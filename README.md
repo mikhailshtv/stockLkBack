@@ -1,3 +1,4 @@
+[![Go Version](https://img.shields.io/github/go-mod/go-version/mikhailshtv/stockLkBack)](https://github.com/mikhailshtv/stockLkBack)
 [![Go Report Card](https://goreportcard.com/badge/github.com/mikhailshtv/stockLkBack)](https://goreportcard.com/report/github.com/mikhailshtv/stockLkBack)
 [![CI Pipeline](https://github.com/mikhailshtv/stockLkBack/actions/workflows/stockLk-github-ci.yml/badge.svg)](https://github.com/mikhailshtv/stockLkBack/actions/workflows/stockLk-github-ci.yml)
 # stockLkBack (Сервис управления складом)
