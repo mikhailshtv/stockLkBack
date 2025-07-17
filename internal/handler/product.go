@@ -1,3 +1,4 @@
+//nolint:lll
 package handler
 
 import (
@@ -115,7 +116,7 @@ func (h *Handler) EditProduct(ctx *gin.Context) {
 // @Failure 401 {object} model.Error "Неавторизованный доступ"
 // @Failure 500 {object} model.Error "Внутренняя ошибка сервера"
 // @Router /api/v1/products [get]
-// @Security BearerAuth
+// @Security BearerAuth.
 func (h *Handler) ListProduct(ctx *gin.Context) {
 	var params model.ProductQueryParams
 	if err := ctx.ShouldBindQuery(&params); err != nil {
