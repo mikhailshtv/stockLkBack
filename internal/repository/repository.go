@@ -14,7 +14,11 @@ import (
 	"github.com/lib/pq"
 )
 
-const NotFoundErrorMessage = "элемент не найден"
+const (
+	NotFoundErrorMessage = "элемент не найден"
+	sortAscParam         = "ASC"
+	sortDescParam        = "DESC"
+)
 
 //go:generate mockgen -source=repository.go -destination=mocks/repository.go -package=mocks
 
@@ -35,11 +39,12 @@ type Order interface {
 
 type Product interface {
 	Create(ctx context.Context, product model.Product) (*model.Product, error)
-	GetAll(ctx context.Context) ([]model.Product, error)
+	GetAll(ctx context.Context, params model.ProductQueryParams) ([]model.Product, error)
 	GetByID(ctx context.Context, id int) (*model.Product, error)
 	Delete(ctx context.Context, id int) (*model.Product, error)
 	Update(ctx context.Context, id int, product model.Product) (*model.Product, error)
 	WriteLog(result any, operation, status, tableName string) (int64, error)
+	GetTotalCount(ctx context.Context, params model.ProductQueryParams) (int, error)
 }
 
 type User interface {

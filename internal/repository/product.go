@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/mikhailshtv/stockLkBack/internal/model"
 
@@ -51,11 +52,44 @@ func (pr *ProductsRepository) Create(ctx context.Context, product model.Product)
 	return &product, nil
 }
 
-func (pr *ProductsRepository) GetAll(ctx context.Context) ([]model.Product, error) {
-	const query = `SELECT * FROM products.products`
+func (pr *ProductsRepository) GetAll(ctx context.Context, params model.ProductQueryParams) ([]model.Product, error) {
+	baseQuery := `SELECT * FROM products.products WHERE 1=1`
+	// Строим запрос с фильрами.
+	query, args := pr.buildProductsQuery(baseQuery, params)
+
+	// Сортировка.
+	validSortFields := map[string]bool{
+		"id":             true,
+		"code":           true,
+		"quantity":       true,
+		"name":           true,
+		"purchase_price": true,
+		"sell_price":     true,
+	}
+
+	if params.SortField != "" && validSortFields[params.SortField] {
+		if params.SortOrder == "" {
+			params.SortOrder = sortAscParam
+		}
+		params.SortOrder = strings.ToUpper(params.SortOrder)
+		if params.SortOrder != sortAscParam && params.SortOrder != sortDescParam {
+			params.SortOrder = sortAscParam
+		}
+	} else {
+		params.SortField = "id"
+		params.SortOrder = sortAscParam
+	}
+	query += fmt.Sprintf(" ORDER BY %s %s", params.SortField, params.SortOrder)
+
+	// Пагинация.
+	if params.PageSize > 0 {
+		offset := (params.Page - 1) * params.PageSize
+		query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2)
+		args = append(args, params.PageSize, offset)
+	}
 
 	var products []model.Product
-	err := pr.db.SelectContext(ctx, &products, query)
+	err := pr.db.SelectContext(ctx, &products, query, args...)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []model.Product{}, nil
@@ -64,6 +98,19 @@ func (pr *ProductsRepository) GetAll(ctx context.Context) ([]model.Product, erro
 	}
 
 	return products, nil
+}
+
+func (pr *ProductsRepository) GetTotalCount(ctx context.Context, params model.ProductQueryParams) (int, error) {
+	baseQuery := `SELECT COUNT(*) FROM products.products WHERE 1=1`
+	query, args := pr.buildProductsQuery(baseQuery, params)
+
+	var total int
+	err := pr.db.GetContext(ctx, &total, query, args...)
+	if err != nil {
+		return 0, fmt.Errorf("ошибка при получении общего количества продуктов: %w", err)
+	}
+
+	return total, nil
 }
 
 func (pr *ProductsRepository) GetByID(ctx context.Context, id int) (*model.Product, error) {
@@ -135,6 +182,43 @@ func (pr *ProductsRepository) Update(ctx context.Context, id int, product model.
 	}
 
 	return &updatedProduct, nil
+}
+
+func (pr *ProductsRepository) buildProductsQuery(baseQuery string, params model.ProductQueryParams) (string, []any) {
+	query := baseQuery
+	args := []any{}
+	argPos := 1
+
+	if params.Code != nil {
+		query += fmt.Sprintf(" AND code = $%d", argPos)
+		args = append(args, *params.Code)
+		argPos++
+	}
+
+	if params.Quantity != nil {
+		query += fmt.Sprintf(" AND quantity = $%d", argPos)
+		args = append(args, *params.Quantity)
+		argPos++
+	}
+
+	if params.Name != "" {
+		query += fmt.Sprintf(" AND name ILIKE $%d", argPos)
+		args = append(args, "%"+params.Name+"%")
+		argPos++
+	}
+
+	if params.PurchasePrice != nil {
+		query += fmt.Sprintf(" AND purchase_price = $%d", argPos)
+		args = append(args, *params.PurchasePrice)
+		argPos++
+	}
+
+	if params.SellPrice != nil {
+		query += fmt.Sprintf(" AND sell_price = $%d", argPos)
+		args = append(args, *params.SellPrice)
+	}
+
+	return query, args
 }
 
 func (pr *ProductsRepository) WriteLog(result any, operation, status, tableName string) (int64, error) {

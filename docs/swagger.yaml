@@ -81,6 +81,20 @@ definitions:
       sellPrice:
         type: integer
     type: object
+  model.ProductListResponse:
+    description: Ответ со списком продуктов и метаданными пагинации.
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/model.Product'
+        type: array
+      page:
+        type: integer
+      pageSize:
+        type: integer
+      total:
+        type: integer
+    type: object
   model.ProductRequestBody:
     properties:
       code:
@@ -440,25 +454,84 @@ paths:
       - Orders
   /api/v1/products:
     get:
+      consumes:
+      - application/json
+      description: Получение списка продуктов с возможностью фильтрации, сортировки
+        и пагинации
+      parameters:
+      - description: Фильтр по коду продукта
+        in: query
+        name: code
+        type: integer
+      - description: Фильтр по количеству
+        in: query
+        name: quantity
+        type: integer
+      - description: Фильтр по названию (поиск по подстроке)
+        in: query
+        name: name
+        type: string
+      - description: Фильтр по закупочной цене
+        in: query
+        name: purchase_price
+        type: integer
+      - description: Фильтр по цене продажи
+        in: query
+        name: sell_price
+        type: integer
+      - description: Поле для сортировки
+        enum:
+        - id
+        - code
+        - quantity
+        - name
+        - purchase_price
+        - sell_price
+        in: query
+        name: sort_field
+        type: string
+      - default: ASC
+        description: Направление сортировки
+        enum:
+        - ASC
+        - DESC
+        in: query
+        name: sort_order
+        type: string
+      - default: 1
+        description: Номер страницы
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 25
+        description: Размер страницы
+        in: query
+        maximum: 100
+        minimum: 1
+        name: page_size
+        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/model.Product'
-            type: array
+            $ref: '#/definitions/model.ProductListResponse'
+        "400":
+          description: Некорректные параметры запроса
+          schema:
+            $ref: '#/definitions/model.Error'
         "401":
-          description: Anauthorized
+          description: Неавторизованный доступ
           schema:
             $ref: '#/definitions/model.Error'
         "500":
-          description: Internal
+          description: Внутренняя ошибка сервера
           schema:
             $ref: '#/definitions/model.Error'
       security:
-      - BearerAuth.: []
+      - BearerAuth: []
       summary: Список продуктов
       tags:
       - Products

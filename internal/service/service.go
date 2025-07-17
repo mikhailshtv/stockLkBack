@@ -21,10 +21,11 @@ type Order interface {
 
 type Product interface {
 	Create(product model.Product) (*model.Product, error)
-	GetAll() ([]model.Product, error)
+	GetAll(params model.ProductQueryParams) ([]model.Product, error)
 	GetByID(id int) (*model.Product, error)
 	Delete(id int) error
 	Update(id int, product model.Product) (*model.Product, error)
+	GetTotalCount(params model.ProductQueryParams) (int, error)
 }
 
 type User interface {
