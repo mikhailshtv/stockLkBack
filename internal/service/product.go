@@ -40,8 +40,12 @@ func (s *ProductsService) Create(product model.Product) (*model.Product, error) 
 	return createdProduct, err
 }
 
-func (s *ProductsService) GetAll() ([]model.Product, error) {
-	return s.repo.GetAll(s.ctx)
+func (s *ProductsService) GetAll(params model.ProductQueryParams) ([]model.Product, error) {
+	return s.repo.GetAll(s.ctx, params)
+}
+
+func (s *ProductsService) GetTotalCount(params model.ProductQueryParams) (int, error) {
+	return s.repo.GetTotalCount(s.ctx, params)
 }
 
 func (s *ProductsService) GetByID(id int) (*model.Product, error) {
