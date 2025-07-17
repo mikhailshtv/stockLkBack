@@ -407,8 +407,12 @@
             "get": {
                 "security": [
                     {
-                        "BearerAuth.": []
+                        "BearerAuth": []
                     }
+                ],
+                "description": "Получение списка продуктов с возможностью фильтрации, сортировки и пагинации",
+                "consumes": [
+                    "application/json"
                 ],
                 "produces": [
                     "application/json"
@@ -417,24 +421,101 @@
                     "Products"
                 ],
                 "summary": "Список продуктов",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Фильтр по коду продукта",
+                        "name": "code",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Фильтр по количеству",
+                        "name": "quantity",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Фильтр по названию (поиск по подстроке)",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Фильтр по закупочной цене",
+                        "name": "purchase_price",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Фильтр по цене продажи",
+                        "name": "sell_price",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "id",
+                            "code",
+                            "quantity",
+                            "name",
+                            "purchase_price",
+                            "sell_price"
+                        ],
+                        "type": "string",
+                        "description": "Поле для сортировки",
+                        "name": "sort_field",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "ASC",
+                            "DESC"
+                        ],
+                        "type": "string",
+                        "default": "ASC",
+                        "description": "Направление сортировки",
+                        "name": "sort_order",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Номер страницы",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 25,
+                        "description": "Размер страницы",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/model.Product"
-                            }
+                            "$ref": "#/definitions/model.ProductListResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректные параметры запроса",
+                        "schema": {
+                            "$ref": "#/definitions/model.Error"
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Неавторизованный доступ",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
                     },
                     "500": {
-                        "description": "Internal",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -1204,6 +1285,27 @@
                     "type": "integer"
                 },
                 "sellPrice": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.ProductListResponse": {
+            "description": "Ответ со списком продуктов и метаданными пагинации.",
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.Product"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "pageSize": {
+                    "type": "integer"
+                },
+                "total": {
                     "type": "integer"
                 }
             }
