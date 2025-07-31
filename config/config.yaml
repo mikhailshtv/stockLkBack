@@ -1,0 +1,27 @@
+app:
+  title: stock-lk-back
+
+http:
+  address: :8080
+  base_path: /api/v1
+  read_header_timeout: 5s
+  read_timeout: 10s
+  write_timeout: 10s
+  idle_timeout: 30s
+  shutdown_timeout: 5s
+  allowed_origins: ["http://*", "https://*"]
+
+db:
+  kind: postgres
+  host: postgres_db
+  port: 5432
+  user_env_key: PG_USER
+  pass_env_key: PG_PASS
+  db_name: stocklk
+  max_connections: 10
+  timeout: 2
+
+redis:
+  address: redis_stocklk:6379
+  password: REDIS_PASS
+  db: 0
