@@ -6,7 +6,8 @@ run:
 
 issues:
   exclude-dirs:
-      - vendor
+    - vendor
+    - config
 
 linters-settings:
   funlen:
@@ -16,7 +17,7 @@ linters-settings:
     rules:
       main:
         list-mode: lax
-        allow: 
+        allow:
           - github.com/swaggo/gin-swagger
   gci:
     sections:
