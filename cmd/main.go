@@ -2,13 +2,14 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"os"
 
+	"github.com/mikhailshtv/stockLkBack/config"
 	_ "github.com/mikhailshtv/stockLkBack/docs"
 	"github.com/mikhailshtv/stockLkBack/internal/app"
-	"github.com/mikhailshtv/stockLkBack/internal/config"
 	"github.com/mikhailshtv/stockLkBack/internal/grpc"
 	"github.com/mikhailshtv/stockLkBack/internal/handler"
 	"github.com/mikhailshtv/stockLkBack/internal/repository"
@@ -16,7 +17,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
-	"github.com/joho/godotenv"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -36,28 +36,27 @@ import (
 
 func main() {
 	ctx := context.Background()
-	appConfig := config.NewConfig()
+	var configPath string
 
-	err := godotenv.Load()
+	flag.StringVar(&configPath, "c", "config/config.yaml", "path to config")
+	flag.Parse()
+
+	cfg, err := config.Read(configPath)
 	if err != nil {
-		log.Fatalf("Ошибка при загрузке .env файла: %v", err)
+		log.Fatalf("failed to read config: %s", err)
 	}
 
-	dbHost := os.Getenv("DB_HOST")
-	dbPort := os.Getenv("DB_PORT")
-	dbUser := os.Getenv("DB_USER")
-	dbPass := os.Getenv("DB_PASSWORD")
-	dbName := os.Getenv("DB_NAME")
+	log.Println(cfg)
 
 	sqlConfig := repository.SQLConfig{
-		Host:           dbHost,
-		Port:           dbPort,
-		User:           dbUser,
-		Password:       dbPass,
-		Database:       dbName,
+		Host:           cfg.DB.Host,
+		Port:           cfg.DB.Port,
+		User:           os.Getenv(cfg.DB.UserEnvKey),
+		Password:       os.Getenv(cfg.DB.PassEnvKey),
+		Database:       cfg.DB.DBName,
 		SSLMode:        "disable",
-		MaxConnections: 10,
-		Timeout:        5,
+		MaxConnections: cfg.DB.MaxConnections,
+		Timeout:        cfg.DB.Timeout,
 	}
 
 	dsn := sqlConfig.CreateDsn()
@@ -71,9 +70,9 @@ func main() {
 
 	// Создание клиента Redis
 	clientRedis := redis.NewClient(&redis.Options{
-		Addr:     "localhost:8081", // Адрес и порт Redis-сервера
-		Password: "",               // Пароль (если есть)
-		DB:       0,                // Номер базы данных
+		Addr:     cfg.Redis.Address, // Адрес и порт Redis-сервера
+		Password: "",                // Пароль (если есть)
+		DB:       cfg.Redis.DB,      // Номер базы данных
 	})
 
 	// Проверка соединения к redis
@@ -89,13 +88,13 @@ func main() {
 
 	go grpc.StartServer(handlers)
 
-	newApp, err := app.NewApp(ctx, appConfig, handlers)
+	newApp, err := app.NewApp(ctx, cfg, handlers)
 	if err != nil {
 		log.Println(err.Error())
 		return
 	}
 	r := gin.Default()
-	url := ginSwagger.URL("http://localhost:8080/api/v1/swagger/doc.json")
+	url := ginSwagger.URL("/api/v1/swagger/doc.json")
 	r.GET("api/v1/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, url))
 	err = newApp.Start(r)
 	if err != nil {

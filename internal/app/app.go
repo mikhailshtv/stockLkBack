@@ -2,19 +2,20 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
-	"github.com/mikhailshtv/stockLkBack/internal/config"
+	"github.com/mikhailshtv/stockLkBack/config"
 	"github.com/mikhailshtv/stockLkBack/internal/handler"
 	"github.com/mikhailshtv/stockLkBack/internal/middleware"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/cors"
 )
 
 type App struct {
@@ -35,7 +36,7 @@ func (a *App) Start(r *gin.Engine) error {
 	ctx, stop := signal.NotifyContext(a.ctx, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
 	defer stop()
 
-	api := r.Group(a.cfg.Group)
+	api := r.Group(a.cfg.HTTP.BasePath)
 	api.POST("/login", a.handler.Login)
 	{
 		orders := api.Group("/orders")
@@ -68,28 +69,47 @@ func (a *App) Start(r *gin.Engine) error {
 	}
 
 	serverHTTP := &http.Server{
-		Addr:              fmt.Sprintf("%s:%d", a.cfg.Host, a.cfg.Port),
-		Handler:           r,
-		ReadHeaderTimeout: 5 * time.Second,
-		ReadTimeout:       10 * time.Second,
-		WriteTimeout:      10 * time.Second,
-		IdleTimeout:       30 * time.Second,
+		Addr:              a.cfg.HTTP.Address,
+		Handler:           useCors(r, a.cfg.HTTP.AllowedOrigins),
+		ReadHeaderTimeout: a.cfg.HTTP.ReadHeaderTimeout,
+		ReadTimeout:       a.cfg.HTTP.ReadTimeout,
+		WriteTimeout:      a.cfg.HTTP.WriteTimeout,
+		IdleTimeout:       a.cfg.HTTP.IdleTimeout,
 	}
 
 	go func() {
 		log.Println("server starting at ", serverHTTP.Addr)
-		if err := serverHTTP.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := serverHTTP.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("listen: %s\n", err)
 		}
 	}()
 
 	<-ctx.Done()
 	log.Println("got interruption signal")
-	ctxT, cancel := context.WithTimeout(ctx, 2*time.Second)
+	ctxT, cancel := context.WithTimeout(ctx, a.cfg.HTTP.ShutdownTimeout)
 	defer cancel()
 	if err := serverHTTP.Shutdown(ctxT); err != nil {
 		return fmt.Errorf("shutdown server: %w", err)
 	}
 	log.Println("FINAL server shutdown")
 	return nil
+}
+
+func useCors(h http.Handler, allowedOrigins []string) http.Handler {
+	corsMiddleware := cors.New(cors.Options{
+		AllowedOrigins: allowedOrigins,
+		AllowedMethods: []string{
+			http.MethodHead,
+			http.MethodGet,
+			http.MethodPost,
+			http.MethodPut,
+			http.MethodPatch,
+			http.MethodDelete,
+		},
+		AllowedHeaders:   []string{"*"},
+		ExposedHeaders:   []string{"*"},
+		AllowCredentials: true,
+	})
+
+	return corsMiddleware.Handler(h)
 }
