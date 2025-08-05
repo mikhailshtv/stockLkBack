@@ -1,13 +1,17 @@
 package handler
 
 import (
+	"github.com/mikhailshtv/stockLkBack/pkg/errors"
 	"net/http"
 	"strconv"
 	"strings"
 
+	"github.com/mikhailshtv/stockLkBack/internal/middleware"
 	"github.com/mikhailshtv/stockLkBack/internal/model"
+	"github.com/mikhailshtv/stockLkBack/pkg/logger"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 // CreateOrder
@@ -18,7 +22,7 @@ import (
 // @Param order body model.OrderRequestBody true "Объект заказа"
 // @Success 201 {object} model.Order "Created"
 // @Failure 400 {object} model.Error "Invalid request"
-// @Failure 401 {object} model.Error "Anauthorized"
+// @Failure 401 {object} model.Error "Unauthorized"
 // @Failure 500 {object} model.Error "Internal"
 // @Router /api/v1/orders [post]
 // @Security BearerAuth.
@@ -26,15 +30,19 @@ func (h *Handler) CreateOrder(ctx *gin.Context) {
 	userID := ctx.GetInt(userIDKey)
 	var orderReq model.OrderRequestBody
 	if err := ctx.ShouldBindJSON(&orderReq); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Некорректное тело запроса"})
+		middleware.HandleError(ctx, errors.NewValidationError("Некорректное тело запроса", err))
 		return
 	}
 	order, err := h.Services.Order.Create(orderReq, userID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		logger.GetLogger().Error("failed to create order",
+			zap.Error(err),
+			zap.Int("user_id", userID),
+		)
+		middleware.HandleError(ctx, err)
 		return
 	}
-	ctx.JSON(http.StatusOK, order)
+	ctx.JSON(http.StatusCreated, order)
 }
 
 // EditOrder
@@ -46,7 +54,7 @@ func (h *Handler) CreateOrder(ctx *gin.Context) {
 // @Param order body model.OrderRequestBody true "Объект заказа"
 // @Success 200 {object} model.Order
 // @Failure 400 {object} model.Error "Invalid request"
-// @Failure 401 {object} model.Error "Anauthorized"
+// @Failure 401 {object} model.Error "Unauthorized"
 // @Failure 404 {object} model.Error "Not found"
 // @Failure 500 {object} model.Error "Internal"
 // @Router /api/v1/orders{id} [put]
@@ -56,33 +64,38 @@ func (h *Handler) EditOrder(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID заказа"})
+		middleware.HandleError(ctx, errors.NewValidationError("некорректный ID заказа", err))
 		return
 	}
 	var order model.OrderRequestBody
 	if err := ctx.ShouldBindJSON(&order); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		middleware.HandleError(ctx, errors.NewValidationError("Неверный формат данных", err))
 		return
 	}
 	orderResult, err := h.Services.Order.Update(id, order, userID)
 	if err != nil {
+		logger.GetLogger().Error("failed to update order",
+			zap.Error(err),
+			zap.Int("order_id", id),
+			zap.Int("user_id", userID),
+		)
 		if strings.Contains(err.Error(), "заказ не найден") {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			middleware.HandleError(ctx, errors.NewNotFoundError("заказ", err))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		middleware.HandleError(ctx, err)
 		return
 	}
 	ctx.JSON(http.StatusOK, orderResult)
 }
 
-// OrderList
+// ListOrders
 // @Summary Список заказов
 // @Tags Orders
 // @Produce		json
 // @Success 200 {object} []model.Order
 // @Failure 400 {object} model.Error "Invalid request"
-// @Failure 401 {object} model.Error "Anauthorized"
+// @Failure 401 {object} model.Error "Unauthorized"
 // @Failure 500 {string} string "Internal"
 // @Router /api/v1/orders [get]
 // @Security BearerAuth.
@@ -90,24 +103,28 @@ func (h *Handler) ListOrders(ctx *gin.Context) {
 	userID := ctx.GetInt(userIDKey)
 	role, exists := ctx.Get(userRoleKey)
 	if !exists {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Некорректная роль пользователя"})
+		middleware.HandleError(ctx, errors.NewValidationError("Некорректная роль пользователя", nil))
 		return
 	}
 	orders, err := h.Services.Order.GetAll(userID, role.(model.UserRole))
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		logger.GetLogger().Error("failed to get orders",
+			zap.Error(err),
+			zap.Int("user_id", userID),
+		)
+		middleware.HandleError(ctx, err)
 		return
 	}
 	ctx.JSON(http.StatusOK, orders)
 }
 
-// GetOrderById
+// GetOrderByID
 // @Summary Получение заказа по id
 // @Tags Orders
 // @Produce		json
 // @Success 200 {object} model.Order
 // @Failure 400 {string} model.Error "Invalid request"
-// @Failure 401 {object} model.Error "Anauthorized"
+// @Failure 401 {object} model.Error "Unauthorized"
 // @Failure 404 {object} model.Error "Not found"
 // @Failure 500 {object} model.Error "Internal"
 // @Param id path string true "id заказа"
@@ -117,22 +134,27 @@ func (h *Handler) GetOrderByID(ctx *gin.Context) {
 	userID := ctx.GetInt(userIDKey)
 	role, exists := ctx.Get(userRoleKey)
 	if !exists {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Некорректная роль пользователя"})
+		middleware.HandleError(ctx, errors.NewValidationError("Некорректная роль пользователя", nil))
 		return
 	}
 	idStr := ctx.Params.ByName("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID заказа"})
+		middleware.HandleError(ctx, errors.NewValidationError("некорректный ID заказа", err))
 		return
 	}
 	order, err := h.Services.Order.GetByID(id, userID, role.(model.UserRole))
 	if err != nil {
+		logger.GetLogger().Error("failed to get order by ID",
+			zap.Error(err),
+			zap.Int("order_id", id),
+			zap.Int("user_id", userID),
+		)
 		if strings.Contains(err.Error(), "заказ не найден") {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			middleware.HandleError(ctx, errors.NewNotFoundError("заказ", err))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		middleware.HandleError(ctx, err)
 		return
 	}
 	ctx.JSON(http.StatusOK, order)
@@ -144,7 +166,7 @@ func (h *Handler) GetOrderByID(ctx *gin.Context) {
 // @Produce		json
 // @Success 200 {object} model.Success "Объект успешно удален"
 // @Failure 400 {string} model.Error "Invalid request"
-// @Failure 401 {object} model.Error "Anauthorized"
+// @Failure 401 {object} model.Error "Unauthorized"
 // @Failure 404 {object} model.Error "Not found"
 // @Failure 500 {string} string "Internal"
 // @Param id path string true "id заказа"
@@ -155,16 +177,21 @@ func (h *Handler) DeleteOrder(ctx *gin.Context) {
 	userID := ctx.GetInt(userIDKey)
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID заказа"})
+		middleware.HandleError(ctx, errors.NewValidationError("некорректный ID заказа", err))
 		return
 	}
 	err = h.Services.Order.Delete(id, userID)
 	if err != nil {
+		logger.GetLogger().Error("failed to delete order",
+			zap.Error(err),
+			zap.Int("order_id", id),
+			zap.Int("user_id", userID),
+		)
 		if strings.Contains(err.Error(), "заказ не найден") {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			middleware.HandleError(ctx, errors.NewNotFoundError("заказ", err))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		middleware.HandleError(ctx, err)
 		return
 	}
 	success := model.Success{
@@ -182,7 +209,7 @@ func (h *Handler) DeleteOrder(ctx *gin.Context) {
 // @Param order body model.OrderStatusRequest true "Объект статуса заказа"
 // @Success 200 {object} model.Order "Ok"
 // @Failure 400 {string} model.Error "Invalid request"
-// @Failure 401 {object} model.Error "Anauthorized"
+// @Failure 401 {object} model.Error "Unauthorized"
 // @Failure 404 {object} model.Error "Not found"
 // @Failure 500 {string} string "Internal"
 // @Router /api/v1/orders/{id} [patch]
@@ -192,21 +219,26 @@ func (h *Handler) ChangeOrderStatus(ctx *gin.Context) {
 	userID := ctx.GetInt(userIDKey)
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID заказа"})
+		middleware.HandleError(ctx, errors.NewValidationError("некорректный ID заказа", err))
 		return
 	}
 	var order model.OrderStatusRequest
 	if err := ctx.ShouldBindJSON(&order); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		middleware.HandleError(ctx, errors.NewValidationError("Неверный формат данных", err))
 		return
 	}
 	orderResult, err := h.Services.Order.UpdateStatus(id, order, userID)
 	if err != nil {
+		logger.GetLogger().Error("failed to update order status",
+			zap.Error(err),
+			zap.Int("order_id", id),
+			zap.Int("user_id", userID),
+		)
 		if strings.Contains(err.Error(), "заказ не найден") {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			middleware.HandleError(ctx, errors.NewNotFoundError("заказ", err))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		middleware.HandleError(ctx, err)
 		return
 	}
 	ctx.JSON(http.StatusOK, orderResult)

@@ -14,11 +14,13 @@ import (
 	"github.com/mikhailshtv/stockLkBack/internal/handler"
 	"github.com/mikhailshtv/stockLkBack/internal/repository"
 	"github.com/mikhailshtv/stockLkBack/internal/service"
+	"github.com/mikhailshtv/stockLkBack/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"go.uber.org/zap"
 )
 
 // swag init -g cmd/main.go команды для генерации сваггера.
@@ -26,7 +28,7 @@ import (
 
 // @title Сервис управления складом
 // @version 1
-// @description API для сервиса управления товарами на скаладе продавца
+// @description API для сервиса управления товарами на складе продавца
 
 // @host localhost:8080/
 
@@ -46,7 +48,15 @@ func main() {
 		log.Fatalf("failed to read config: %s", err)
 	}
 
-	log.Println(cfg)
+	if err := logger.InitLogger(cfg.Logging.Level); err != nil {
+		log.Fatalf("failed to initialize logger: %s", err)
+	}
+	defer logger.Sync()
+
+	logger.GetLogger().Info("application starting",
+		zap.String("config_path", configPath),
+		zap.String("log_level", cfg.Logging.Level),
+	)
 
 	sqlConfig := repository.SQLConfig{
 		Host:           cfg.DB.Host,
@@ -61,21 +71,18 @@ func main() {
 
 	dsn := sqlConfig.CreateDsn()
 
-	// Создание базы данных sql
 	db, err := repository.NewSqlxConn(ctx, dsn)
 	if err != nil {
 		fmt.Println("Ошибка подключения к postgreSQL:", err)
 		return
 	}
 
-	// Создание клиента Redis
 	clientRedis := redis.NewClient(&redis.Options{
-		Addr:     cfg.Redis.Address, // Адрес и порт Redis-сервера
-		Password: "",                // Пароль (если есть)
-		DB:       cfg.Redis.DB,      // Номер базы данных
+		Addr:     cfg.Redis.Address,
+		Password: "",
+		DB:       cfg.Redis.DB,
 	})
 
-	// Проверка соединения к redis
 	_, err = clientRedis.Ping(ctx).Result()
 	if err != nil {
 		fmt.Println("Ошибка подключения к Redis:", err)

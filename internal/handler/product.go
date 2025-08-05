@@ -2,6 +2,10 @@
 package handler
 
 import (
+	"github.com/mikhailshtv/stockLkBack/internal/middleware"
+	"github.com/mikhailshtv/stockLkBack/pkg/errors"
+	"github.com/mikhailshtv/stockLkBack/pkg/logger"
+	"go.uber.org/zap"
 	"net/http"
 	"strconv"
 	"strings"
@@ -19,30 +23,35 @@ import (
 // @Param product body model.ProductRequestBody true "Объект продукта"
 // @Success 201 {object} model.Product "Created"
 // @Failure 400 {object} model.Error "Invalid request"
-// @Failure 401 {object} model.Error "Anauthorized"
+// @Failure 401 {object} model.Error "Unauthorized"
 // @Failure 500 {object} model.Error "Internal"
 // @Router /api/v1/products [post]
 // @Security BearerAuth.
 func (h *Handler) CreateProduct(ctx *gin.Context) {
 	role, exists := ctx.Get(userRoleKey)
+	userID := ctx.GetInt(userIDKey)
 	if !exists {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Некорректная роль пользователя"})
+		middleware.HandleError(ctx, errors.NewValidationError("Некорректная роль пользователя", nil))
 		return
 	}
 	isEmployee := role == model.RoleEmployee
 	if !isEmployee {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "недостаточно прав для выполнения операции"})
+		middleware.HandleError(ctx, errors.NewForbiddenError("Недостаточно прав для выполнения операции", nil))
 		return
 	}
 	var productReq model.Product
 	if err := ctx.ShouldBindJSON(&productReq); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		middleware.HandleError(ctx, errors.NewValidationError("Некорректное тело запроса", err))
 		return
 	}
 
 	product, err := h.Services.Product.Create(productReq)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		logger.GetLogger().Error("failed to create product",
+			zap.Error(err),
+			zap.Int("user_id", userID),
+		)
+		middleware.HandleError(ctx, err)
 		return
 	}
 	ctx.JSON(http.StatusOK, product)
@@ -56,7 +65,7 @@ func (h *Handler) CreateProduct(ctx *gin.Context) {
 // @Param product body model.ProductRequestBody true "Объект продукта"
 // @Success 200 {object} model.Product
 // @Failure 400 {object} model.Error "Invalid request"
-// @Failure 401 {object} model.Error "Anauthorized"
+// @Failure 401 {object} model.Error "Unauthorized"
 // @Failure 404 {object} model.Error "Not found"
 // @Failure 500 {object} model.Error "Internal"
 // @Param id path string true "id продукта"
@@ -64,39 +73,44 @@ func (h *Handler) CreateProduct(ctx *gin.Context) {
 // @Security BearerAuth.
 func (h *Handler) EditProduct(ctx *gin.Context) {
 	role, exists := ctx.Get(userRoleKey)
+	userID := ctx.GetInt(userIDKey)
 	if !exists {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Некорректная роль пользователя"})
+		middleware.HandleError(ctx, errors.NewValidationError("Некорректная роль пользователя", nil))
 		return
 	}
 	isEmployee := role == model.RoleEmployee
 	if !isEmployee {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "недостаточно прав для выполнения операции"})
+		middleware.HandleError(ctx, errors.NewForbiddenError("Недостаточно прав для выполнения операции", nil))
 		return
 	}
 	idStr := ctx.Params.ByName("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID продукта"})
+		middleware.HandleError(ctx, errors.NewValidationError("Некорректный ID продукта", err))
 		return
 	}
 	var productReq model.Product
 	if err := ctx.ShouldBindJSON(&productReq); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		middleware.HandleError(ctx, errors.NewValidationError("Некорректное тело запроса", err))
 		return
 	}
 	product, err := h.Services.Product.Update(id, productReq)
 	if err != nil {
+		logger.GetLogger().Error("failed to edit product",
+			zap.Error(err),
+			zap.Int("user_id", userID),
+		)
 		if strings.Contains(err.Error(), "продукт не найден") {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			middleware.HandleError(ctx, errors.NewNotFoundError("продукт", err))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		middleware.HandleError(ctx, err)
 		return
 	}
 	ctx.JSON(http.StatusOK, product)
 }
 
-// ProductList
+// ListProduct
 // @Summary Список продуктов
 // @Description Получение списка продуктов с возможностью фильтрации, сортировки и пагинации
 // @Tags Products
@@ -120,7 +134,7 @@ func (h *Handler) EditProduct(ctx *gin.Context) {
 func (h *Handler) ListProduct(ctx *gin.Context) {
 	var params model.ProductQueryParams
 	if err := ctx.ShouldBindQuery(&params); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Некорректные параметры запроса"})
+		middleware.HandleError(ctx, errors.NewValidationError("Некорректные параметры запроса", err))
 		return
 	}
 
@@ -133,14 +147,13 @@ func (h *Handler) ListProduct(ctx *gin.Context) {
 
 	products, err := h.Services.Product.GetAll(params)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		middleware.HandleError(ctx, err)
 		return
 	}
 
-	// Получаем общее количество
 	total, err := h.Services.Product.GetTotalCount(params)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		middleware.HandleError(ctx, err)
 		return
 	}
 
@@ -154,13 +167,13 @@ func (h *Handler) ListProduct(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-// GetProductById
+// GetProductByID
 // @Summary Получение продукта по id
 // @Tags Products
 // @Produce		json
 // @Success 200 {object} model.Product
 // @Failure 400 {string} model.Error "Invalid request"
-// @Failure 401 {object} model.Error "Anauthorized"
+// @Failure 401 {object} model.Error "Unauthorized"
 // @Failure 404 {object} model.Error "Not found"
 // @Failure 500 {object} model.Error "Internal"
 // @Param id path string true "id продукта"
@@ -168,18 +181,23 @@ func (h *Handler) ListProduct(ctx *gin.Context) {
 // @Security BearerAuth.
 func (h *Handler) GetProductByID(ctx *gin.Context) {
 	idStr := ctx.Params.ByName("id")
+	userID := ctx.GetInt(userIDKey)
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID продукта"})
+		middleware.HandleError(ctx, errors.NewValidationError("Некорректный ID продукта", err))
 		return
 	}
 	product, err := h.Services.Product.GetByID(id)
 	if err != nil {
+		logger.GetLogger().Error("failed to get product",
+			zap.Error(err),
+			zap.Int("user_id", userID),
+		)
 		if strings.Contains(err.Error(), "продукт не найден") {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			middleware.HandleError(ctx, errors.NewNotFoundError("продукт", err))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		middleware.HandleError(ctx, err)
 		return
 	}
 	ctx.JSON(http.StatusOK, product)
@@ -191,7 +209,7 @@ func (h *Handler) GetProductByID(ctx *gin.Context) {
 // @Produce		json
 // @Success 200 {object} model.Success "Объект успешно удален"
 // @Failure 400 {string} model.Error "Invalid request"
-// @Failure 401 {object} model.Error "Anauthorized"
+// @Failure 401 {object} model.Error "Unauthorized"
 // @Failure 404 {object} model.Error "Not found"
 // @Failure 500 {object} model.Error "Internal"
 // @Param id path string true "id продукта"
@@ -199,28 +217,33 @@ func (h *Handler) GetProductByID(ctx *gin.Context) {
 // @Security BearerAuth.
 func (h *Handler) DeleteProduct(ctx *gin.Context) {
 	role, exists := ctx.Get(userRoleKey)
+	userID := ctx.GetInt(userIDKey)
 	if !exists {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Некорректная роль пользователя"})
+		middleware.HandleError(ctx, errors.NewValidationError("Некорректная роль пользователя", nil))
 		return
 	}
 	isEmployee := role == model.RoleEmployee
 	if !isEmployee {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "недостаточно прав для выполнения операции"})
+		middleware.HandleError(ctx, errors.NewForbiddenError("Недостаточно прав для выполнения операции", nil))
 		return
 	}
 	idStr := ctx.Params.ByName("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "некорректный ID продукта"})
+		middleware.HandleError(ctx, errors.NewValidationError("Некорректный ID продукта", err))
 		return
 	}
 
 	if err := h.Services.Product.Delete(id); err != nil {
+		logger.GetLogger().Error("failed to delete product",
+			zap.Error(err),
+			zap.Int("user_id", userID),
+		)
 		if strings.Contains(err.Error(), "продукт не найден") {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			middleware.HandleError(ctx, errors.NewNotFoundError("продукт", err))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		middleware.HandleError(ctx, err)
 		return
 	}
 

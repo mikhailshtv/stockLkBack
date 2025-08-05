@@ -36,10 +36,15 @@ type (
 		DB       int    `yaml:"db"`
 	}
 
+	Logging struct {
+		Level string `yaml:"level"`
+	}
+
 	Config struct {
-		HTTP  HTTP  `yaml:"http"`
-		DB    DB    `yaml:"db"`
-		Redis Redis `yaml:"redis"`
+		HTTP    HTTP    `yaml:"http"`
+		DB      DB      `yaml:"db"`
+		Redis   Redis   `yaml:"redis"`
+		Logging Logging `yaml:"logging"`
 	}
 )
 

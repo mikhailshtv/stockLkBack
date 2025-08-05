@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,9 +12,11 @@ import (
 	"github.com/mikhailshtv/stockLkBack/config"
 	"github.com/mikhailshtv/stockLkBack/internal/handler"
 	"github.com/mikhailshtv/stockLkBack/internal/middleware"
+	"github.com/mikhailshtv/stockLkBack/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/cors"
+	"go.uber.org/zap"
 )
 
 type App struct {
@@ -35,6 +36,9 @@ func NewApp(ctx context.Context, cfg *config.Config, handler *handler.Handler) (
 func (a *App) Start(r *gin.Engine) error {
 	ctx, stop := signal.NotifyContext(a.ctx, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
 	defer stop()
+
+	r.Use(middleware.LoggingMiddleware())
+	r.Use(middleware.ErrorHandlerMiddleware())
 
 	api := r.Group(a.cfg.HTTP.BasePath)
 	api.POST("/login", a.handler.Login)
@@ -78,20 +82,24 @@ func (a *App) Start(r *gin.Engine) error {
 	}
 
 	go func() {
-		log.Println("server starting at ", serverHTTP.Addr)
+		logger.GetLogger().Info("server starting",
+			zap.String("address", serverHTTP.Addr),
+		)
 		if err := serverHTTP.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("listen: %s\n", err)
+			logger.GetLogger().Fatal("server failed to start",
+				zap.Error(err),
+			)
 		}
 	}()
 
 	<-ctx.Done()
-	log.Println("got interruption signal")
+	logger.GetLogger().Info("got interruption signal")
 	ctxT, cancel := context.WithTimeout(ctx, a.cfg.HTTP.ShutdownTimeout)
 	defer cancel()
 	if err := serverHTTP.Shutdown(ctxT); err != nil {
 		return fmt.Errorf("shutdown server: %w", err)
 	}
-	log.Println("FINAL server shutdown")
+	logger.GetLogger().Info("server shutdown completed")
 	return nil
 }
 

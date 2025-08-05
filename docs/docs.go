@@ -26,7 +26,7 @@ const docTemplate = `{
                 "tags": [
                     "Login"
                 ],
-                "summary": "Аутенификация пользователя",
+                "summary": "Аутентификация пользователя",
                 "parameters": [
                     {
                         "description": "Данные для аутентификации пользователя",
@@ -52,7 +52,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -97,7 +97,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -151,7 +151,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -202,7 +202,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -257,7 +257,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -321,7 +321,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -390,7 +390,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -414,7 +414,7 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "description": "Получение списка продуктов с возможностью фильтрации, сортировки и пагинации",
@@ -570,7 +570,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -621,7 +621,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -688,7 +688,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -743,7 +743,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -788,7 +788,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -882,7 +882,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -949,19 +949,13 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
                     },
                     "404": {
                         "description": "Not found",
-                        "schema": {
-                            "$ref": "#/definitions/model.Error"
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -1010,7 +1004,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -1079,7 +1073,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -1148,7 +1142,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -1483,7 +1477,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "",
 	Schemes:          []string{},
 	Title:            "Сервис управления складом",
-	Description:      "API для сервиса управления товарами на скаладе продавца",
+	Description:      "API для сервиса управления товарами на складе продавца",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",
