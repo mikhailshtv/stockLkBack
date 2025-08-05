@@ -2,7 +2,6 @@ package handler
 
 import (
 	"bytes"
-	"github.com/mikhailshtv/stockLkBack/pkg/errors"
 	"net/http/httptest"
 	"testing"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"github.com/mikhailshtv/stockLkBack/internal/model"
 	"github.com/mikhailshtv/stockLkBack/internal/service"
 	mock_service "github.com/mikhailshtv/stockLkBack/internal/service/mocks"
+	"github.com/mikhailshtv/stockLkBack/pkg/errors"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
@@ -205,8 +205,10 @@ func TestHandler_ListOrders(t *testing.T) {
 					nil, errors.NewDatabaseError("Ошибка получения списка заказов", nil),
 				)
 			},
-			expectedStatusCode:   500,
-			expectedResponseBody: `{"code":500, "message":"Ошибка базы данных: Ошибка получения списка заказов", "type":"DATABASE_ERROR"}`,
+			expectedStatusCode: 500,
+			expectedResponseBody: `
+				{"code":500, "message":"Ошибка базы данных: Ошибка получения списка заказов", "type":"DATABASE_ERROR"}
+			`,
 		},
 	}
 
