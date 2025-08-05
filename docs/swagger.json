@@ -1,7 +1,7 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "API для сервиса управления товарами на скаладе продавца",
+        "description": "API для сервиса управления товарами на складе продавца",
         "title": "Сервис управления складом",
         "contact": {},
         "version": "1"
@@ -19,7 +19,7 @@
                 "tags": [
                     "Login"
                 ],
-                "summary": "Аутенификация пользователя",
+                "summary": "Аутентификация пользователя",
                 "parameters": [
                     {
                         "description": "Данные для аутентификации пользователя",
@@ -45,7 +45,7 @@
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -90,7 +90,7 @@
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -144,7 +144,7 @@
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -195,7 +195,7 @@
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -250,7 +250,7 @@
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -314,7 +314,7 @@
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -383,7 +383,7 @@
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -407,7 +407,7 @@
             "get": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "BearerAuth.": []
                     }
                 ],
                 "description": "Получение списка продуктов с возможностью фильтрации, сортировки и пагинации",
@@ -563,7 +563,7 @@
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -614,7 +614,7 @@
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -681,7 +681,7 @@
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -736,7 +736,7 @@
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -781,7 +781,7 @@
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -875,7 +875,7 @@
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -942,19 +942,13 @@
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
                     },
                     "404": {
                         "description": "Not found",
-                        "schema": {
-                            "$ref": "#/definitions/model.Error"
-                        }
-                    },
-                    "422": {
-                        "description": "Unprocessable Entity",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -1003,7 +997,7 @@
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -1072,7 +1066,7 @@
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }
@@ -1141,7 +1135,7 @@
                         }
                     },
                     "401": {
-                        "description": "Anauthorized",
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/model.Error"
                         }

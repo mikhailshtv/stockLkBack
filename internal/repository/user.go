@@ -239,9 +239,9 @@ func (ur *UsersRepository) ChangeUserRole(
 func (ur *UsersRepository) ChangePassword(
 	ctx context.Context,
 	id int,
-	changePassworReq model.UserChangePasswordBody,
+	changePasswordReq model.UserChangePasswordBody,
 ) (*model.Success, error) {
-	if changePassworReq.Password != changePassworReq.PasswordConfirm {
+	if changePasswordReq.Password != changePasswordReq.PasswordConfirm {
 		return nil, fmt.Errorf("пароли не совпадают")
 	}
 
@@ -255,18 +255,18 @@ func (ur *UsersRepository) ChangePassword(
 		return nil, fmt.Errorf("ошибка при получении пользователя: %w", err)
 	}
 
-	if changePassworReq.OldPassword == "" {
+	if changePasswordReq.OldPassword == "" {
 		return nil, fmt.Errorf("необходимо указать текущий пароль")
 	}
 	var user model.User
 	user.PasswordHash = currentHash
-	res := user.CheckUserPassword(changePassworReq.OldPassword)
+	res := user.CheckUserPassword(changePasswordReq.OldPassword)
 	fmt.Printf("%v", res)
 	if !res {
 		return nil, fmt.Errorf("неверный текущий пароль")
 	}
 
-	err = user.HashPassword(changePassworReq.Password)
+	err = user.HashPassword(changePasswordReq.Password)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при хешировании пароля: %w", err)
 	}

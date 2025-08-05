@@ -25,3 +25,6 @@ redis:
   address: redis_stocklk:6379
   password: REDIS_PASS
   db: 0
+
+logging:
+  level: info
