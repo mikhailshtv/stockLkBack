@@ -197,7 +197,7 @@ definitions:
 host: localhost:8080/
 info:
   contact: {}
-  description: API для сервиса управления товарами на скаладе продавца
+  description: API для сервиса управления товарами на складе продавца
   title: Сервис управления складом
   version: "1"
 paths:
@@ -224,14 +224,14 @@ paths:
           schema:
             $ref: '#/definitions/model.Error'
         "401":
-          description: Anauthorized
+          description: Unauthorized
           schema:
             $ref: '#/definitions/model.Error'
         "500":
           description: Internal server error
           schema:
             $ref: '#/definitions/model.Error'
-      summary: Аутенификация пользователя
+      summary: Аутентификация пользователя
       tags:
       - Login
   /api/v1/orders:
@@ -250,7 +250,7 @@ paths:
           schema:
             $ref: '#/definitions/model.Error'
         "401":
-          description: Anauthorized
+          description: Unauthorized
           schema:
             $ref: '#/definitions/model.Error'
         "500":
@@ -284,7 +284,7 @@ paths:
           schema:
             $ref: '#/definitions/model.Error'
         "401":
-          description: Anauthorized
+          description: Unauthorized
           schema:
             $ref: '#/definitions/model.Error'
         "500":
@@ -316,7 +316,7 @@ paths:
           schema:
             type: string
         "401":
-          description: Anauthorized
+          description: Unauthorized
           schema:
             $ref: '#/definitions/model.Error'
         "404":
@@ -351,7 +351,7 @@ paths:
           schema:
             type: string
         "401":
-          description: Anauthorized
+          description: Unauthorized
           schema:
             $ref: '#/definitions/model.Error'
         "404":
@@ -392,7 +392,7 @@ paths:
           schema:
             type: string
         "401":
-          description: Anauthorized
+          description: Unauthorized
           schema:
             $ref: '#/definitions/model.Error'
         "404":
@@ -436,7 +436,7 @@ paths:
           schema:
             $ref: '#/definitions/model.Error'
         "401":
-          description: Anauthorized
+          description: Unauthorized
           schema:
             $ref: '#/definitions/model.Error'
         "404":
@@ -531,7 +531,7 @@ paths:
           schema:
             $ref: '#/definitions/model.Error'
       security:
-      - BearerAuth: []
+      - BearerAuth.: []
       summary: Список продуктов
       tags:
       - Products
@@ -557,7 +557,7 @@ paths:
           schema:
             $ref: '#/definitions/model.Error'
         "401":
-          description: Anauthorized
+          description: Unauthorized
           schema:
             $ref: '#/definitions/model.Error'
         "500":
@@ -589,7 +589,7 @@ paths:
           schema:
             type: string
         "401":
-          description: Anauthorized
+          description: Unauthorized
           schema:
             $ref: '#/definitions/model.Error'
         "404":
@@ -624,7 +624,7 @@ paths:
           schema:
             type: string
         "401":
-          description: Anauthorized
+          description: Unauthorized
           schema:
             $ref: '#/definitions/model.Error'
         "404":
@@ -667,7 +667,7 @@ paths:
           schema:
             $ref: '#/definitions/model.Error'
         "401":
-          description: Anauthorized
+          description: Unauthorized
           schema:
             $ref: '#/definitions/model.Error'
         "404":
@@ -695,7 +695,7 @@ paths:
               $ref: '#/definitions/model.User'
             type: array
         "401":
-          description: Anauthorized
+          description: Unauthorized
           schema:
             $ref: '#/definitions/model.Error'
         "500":
@@ -755,7 +755,7 @@ paths:
           schema:
             $ref: '#/definitions/model.Error'
         "401":
-          description: Anauthorized
+          description: Unauthorized
           schema:
             $ref: '#/definitions/model.Error'
         "404":
@@ -790,7 +790,7 @@ paths:
           schema:
             $ref: '#/definitions/model.Error'
         "401":
-          description: Anauthorized
+          description: Unauthorized
           schema:
             $ref: '#/definitions/model.Error'
         "404":
@@ -833,15 +833,11 @@ paths:
           schema:
             $ref: '#/definitions/model.Error'
         "401":
-          description: Anauthorized
+          description: Unauthorized
           schema:
             $ref: '#/definitions/model.Error'
         "404":
           description: Not found
-          schema:
-            $ref: '#/definitions/model.Error'
-        "422":
-          description: Unprocessable Entity
           schema:
             $ref: '#/definitions/model.Error'
         "500":
@@ -881,7 +877,7 @@ paths:
           schema:
             $ref: '#/definitions/model.Error'
         "401":
-          description: Anauthorized
+          description: Unauthorized
           schema:
             $ref: '#/definitions/model.Error'
         "404":
@@ -925,7 +921,7 @@ paths:
           schema:
             $ref: '#/definitions/model.Error'
         "401":
-          description: Anauthorized
+          description: Unauthorized
           schema:
             $ref: '#/definitions/model.Error'
         "404":
