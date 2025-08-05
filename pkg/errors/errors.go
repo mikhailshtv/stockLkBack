@@ -75,7 +75,7 @@ func NewForbiddenError(message string, internal error) *AppError {
 func NewDatabaseError(operation string, internal error) *AppError {
 	return &AppError{
 		Type:     ErrorTypeDatabase,
-		Message:  fmt.Sprintf("Ошибка базы данных при %s", operation),
+		Message:  fmt.Sprintf("Ошибка базы данных: %s", operation),
 		Code:     http.StatusInternalServerError,
 		Internal: internal,
 	}

@@ -2,7 +2,7 @@ package handler
 
 import (
 	"bytes"
-	"errors"
+	"github.com/mikhailshtv/stockLkBack/pkg/errors"
 	"net/http/httptest"
 	"testing"
 	"time"
@@ -69,7 +69,7 @@ func TestHandler_CreateOrder(t *testing.T) {
 					}, nil,
 				)
 			},
-			expectedStatusCode: 200,
+			expectedStatusCode: 201,
 			expectedResponseBody: `{
 				"id":1,
 				"number":1,
@@ -102,7 +102,7 @@ func TestHandler_CreateOrder(t *testing.T) {
 				}`,
 			mockBehavior:         func(_ *mock_service.MockOrder, _ model.OrderRequestBody) {},
 			expectedStatusCode:   400,
-			expectedResponseBody: `{"error":"Некорректное тело запроса"}`,
+			expectedResponseBody: `{"code":400, "message":"Некорректное тело запроса", "type":"VALIDATION_ERROR"}`,
 		},
 		{
 			name: "Ошибка 500",
@@ -114,10 +114,10 @@ func TestHandler_CreateOrder(t *testing.T) {
 				Products: []model.OrderProduct{},
 			},
 			mockBehavior: func(s *mock_service.MockOrder, orderReq model.OrderRequestBody) {
-				s.EXPECT().Create(orderReq, 1).Return(nil, errors.New("список товаров не может быть пустым"))
+				s.EXPECT().Create(orderReq, 1).Return(nil, errors.NewInternalError("Внутренняя ошибка сервера", nil))
 			},
 			expectedStatusCode:   500,
-			expectedResponseBody: `{"error":"список товаров не может быть пустым"}`,
+			expectedResponseBody: `{"code":500, "message":"Внутренняя ошибка сервера", "type":"INTERNAL_ERROR"}`,
 		},
 	}
 
@@ -199,14 +199,14 @@ func TestHandler_ListOrders(t *testing.T) {
 			]`,
 		},
 		{
-			name: "Ошибка коннекта к базе",
+			name: "Ошибка получения списка заказов",
 			mockBehavior: func(s *mock_service.MockOrder) {
 				s.EXPECT().GetAll(1, model.RoleEmployee).Return(
-					nil, errors.New("Ошибка коннекта к базе"),
+					nil, errors.NewDatabaseError("Ошибка получения списка заказов", nil),
 				)
 			},
 			expectedStatusCode:   500,
-			expectedResponseBody: `{"error":"Ошибка коннекта к базе"}`,
+			expectedResponseBody: `{"code":500, "message":"Ошибка базы данных: Ошибка получения списка заказов", "type":"DATABASE_ERROR"}`,
 		},
 	}
 
@@ -435,10 +435,10 @@ func TestHandler_DeleteOrder(t *testing.T) {
 		{
 			name: "Ошибка удаления",
 			mockBehavior: func(s *mock_service.MockOrder) {
-				s.EXPECT().Delete(1, 1).Return(errors.New("ошибка сохранения в файл"))
+				s.EXPECT().Delete(1, 1).Return(errors.NewInternalError("Неизвестная ошибка сервера", nil))
 			},
 			expectedStatusCode:   500,
-			expectedResponseBody: `{"error":"ошибка сохранения в файл"}`,
+			expectedResponseBody: `{"type":"INTERNAL_ERROR","message":"Неизвестная ошибка сервера","code":500}`,
 		},
 	}
 
