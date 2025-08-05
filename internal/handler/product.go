@@ -2,17 +2,17 @@
 package handler
 
 import (
-	"github.com/mikhailshtv/stockLkBack/internal/middleware"
-	"github.com/mikhailshtv/stockLkBack/pkg/errors"
-	"github.com/mikhailshtv/stockLkBack/pkg/logger"
-	"go.uber.org/zap"
 	"net/http"
 	"strconv"
 	"strings"
 
+	"github.com/mikhailshtv/stockLkBack/internal/middleware"
 	"github.com/mikhailshtv/stockLkBack/internal/model"
+	"github.com/mikhailshtv/stockLkBack/pkg/errors"
+	"github.com/mikhailshtv/stockLkBack/pkg/logger"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 // CreateProduct

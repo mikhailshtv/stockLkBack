@@ -2,10 +2,10 @@ package service
 
 import (
 	"context"
-	"github.com/mikhailshtv/stockLkBack/pkg/errors"
 
 	"github.com/mikhailshtv/stockLkBack/internal/model"
 	"github.com/mikhailshtv/stockLkBack/internal/repository"
+	"github.com/mikhailshtv/stockLkBack/pkg/errors"
 	"github.com/mikhailshtv/stockLkBack/pkg/logger"
 
 	"go.uber.org/zap"
@@ -118,6 +118,7 @@ func (s *ProductsService) Delete(id int) error {
 	return err
 }
 
+//nolint:dupl
 func (s *ProductsService) Update(id int, product model.Product) (*model.Product, error) {
 	updatedProduct, err := s.repo.Update(s.ctx, id, product)
 	var result any

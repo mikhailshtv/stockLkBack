@@ -2,10 +2,10 @@ package service
 
 import (
 	"context"
-	"github.com/mikhailshtv/stockLkBack/pkg/errors"
 
 	"github.com/mikhailshtv/stockLkBack/internal/model"
 	"github.com/mikhailshtv/stockLkBack/internal/repository"
+	"github.com/mikhailshtv/stockLkBack/pkg/errors"
 	"github.com/mikhailshtv/stockLkBack/pkg/logger"
 
 	"go.uber.org/zap"
@@ -124,6 +124,7 @@ func (s *UsersService) Delete(id int) error {
 	return err
 }
 
+//nolint:dupl
 func (s *UsersService) Update(id int, user model.UserEditBody) (*model.User, error) {
 	updatedUser, err := s.repo.Update(s.ctx, id, user)
 	var result any
