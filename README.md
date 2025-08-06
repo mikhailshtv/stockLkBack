@@ -37,6 +37,8 @@
 - **Трейсинг запросов** с уникальными trace ID
 - **Автоматическое логирование** всех HTTP запросов
 - **Обработку паник** с детальным логированием
+- **Централизованный сбор логов** через ELK-стек (Elasticsearch + Logstash + Kibana)
+- **Анализ логов** в реальном времени: [Kibana Dashboard](http://localhost:5601) (после запуска ELK)
 
 ### Архитектура
 
@@ -56,10 +58,8 @@ Database (PostgreSQL)
 - `NOT_FOUND` - ресурс не найден (404)
 - `UNAUTHORIZED` - ошибка авторизации (401)
 - `FORBIDDEN` - доступ запрещён (403)
-- `CONFLICT` - конфликт данных (409)
 - `INTERNAL_ERROR` - внутренняя ошибка сервера (500)
 - `DATABASE_ERROR` - ошибка базы данных (500)
-- `EXTERNAL_ERROR` - ошибка внешнего сервиса (500)
 
 ### Конфигурация
 
@@ -100,6 +100,11 @@ if err != nil {
 }
 ```
 
+### Возможности анализа в ELK
+- Фильтрация логов по уровню (`error`, `warn`, `info`)
+- Поиск по полям: `trace_id`, `user_id`, `order_id`
+- Анализ временных тенденций через Kibana Lens
+
 ## Запуск приложения в docker-контейнере
 
 ```sh
@@ -108,4 +113,6 @@ if err != nil {
 docker-compose up --build
 ```
 
-После запуска API будет доступен по адресу http://localhost:8080, а Swagger UI — по адресу http://localhost:8080/swagger/index.html
+После запуска API будет доступен по адресу http://localhost:8080,
+Kibana - по адресу http://localhost:5601,
+а Swagger UI — по адресу http://localhost:8080/swagger/index.html
