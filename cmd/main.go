@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"log"
 	"os"
 
@@ -73,7 +72,7 @@ func main() {
 
 	db, err := repository.NewSqlxConn(ctx, dsn)
 	if err != nil {
-		fmt.Println("Ошибка подключения к postgreSQL:", err)
+		logger.GetLogger().Error("failed to connect to database", zap.Error(err))
 		return
 	}
 
@@ -85,7 +84,7 @@ func main() {
 
 	_, err = clientRedis.Ping(ctx).Result()
 	if err != nil {
-		fmt.Println("Ошибка подключения к Redis:", err)
+		logger.GetLogger().Error("failed to connect to redis", zap.Error(err))
 		return
 	}
 
