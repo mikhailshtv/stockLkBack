@@ -13,6 +13,7 @@ import (
 	"github.com/mikhailshtv/stockLkBack/internal/handler"
 	"github.com/mikhailshtv/stockLkBack/internal/repository"
 	"github.com/mikhailshtv/stockLkBack/internal/service"
+	"github.com/mikhailshtv/stockLkBack/pkg/kafka/producer"
 	"github.com/mikhailshtv/stockLkBack/pkg/logger"
 
 	"github.com/gin-gonic/gin"
@@ -88,8 +89,15 @@ func main() {
 		return
 	}
 
+	kafkaProducer := producer.New(cfg.Kafka.Brokers, cfg.Kafka.Topic, logger.GetLogger())
+	defer func() {
+		if err := kafkaProducer.Close(); err != nil {
+			logger.GetLogger().Error("failed to close kafka producer", zap.Error(err))
+		}
+	}()
+
 	repo := repository.NewRepository(db, clientRedis)
-	services := service.NewService(ctx, repo)
+	services := service.NewService(ctx, repo, kafkaProducer)
 	handlers := handler.NewHandler(services)
 
 	go grpc.StartServer(handlers)

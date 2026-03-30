@@ -40,11 +40,17 @@ type (
 		Level string `yaml:"level"`
 	}
 
+	Kafka struct {
+		Brokers []string `yaml:"brokers"`
+		Topic   string   `yaml:"topic"`
+	}
+
 	Config struct {
 		HTTP    HTTP    `yaml:"http"`
 		DB      DB      `yaml:"db"`
 		Redis   Redis   `yaml:"redis"`
 		Logging Logging `yaml:"logging"`
+		Kafka   Kafka   `yaml:"kafka"`
 	}
 )
 
