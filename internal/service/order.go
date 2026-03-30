@@ -2,10 +2,13 @@ package service
 
 import (
 	"context"
+	"strconv"
+	"time"
 
 	"github.com/mikhailshtv/stockLkBack/internal/model"
 	"github.com/mikhailshtv/stockLkBack/internal/repository"
 	"github.com/mikhailshtv/stockLkBack/pkg/errors"
+	"github.com/mikhailshtv/stockLkBack/pkg/kafka/producer"
 	"github.com/mikhailshtv/stockLkBack/pkg/logger"
 
 	"go.uber.org/zap"
@@ -18,12 +21,60 @@ const (
 )
 
 type OrdersService struct {
-	repo repository.Order
-	ctx  context.Context
+	repo      repository.Order
+	userRepo  repository.User
+	publisher producer.EventPublisher
+	ctx       context.Context
 }
 
-func NewOrdersService(ctx context.Context, repo repository.Order) *OrdersService {
-	return &OrdersService{repo: repo, ctx: ctx}
+func NewOrdersService(
+	ctx context.Context,
+	repo repository.Order,
+	userRepo repository.User,
+	pub producer.EventPublisher,
+) *OrdersService {
+	return &OrdersService{repo: repo, userRepo: userRepo, publisher: pub, ctx: ctx}
+}
+
+func (s *OrdersService) publishEvent(eventType model.OrderEventType, order *model.Order) {
+	go func() {
+		user, err := s.userRepo.GetByID(s.ctx, order.UserID)
+		if err != nil {
+			logger.GetLogger().Warn("kafka: failed to fetch user for event",
+				zap.Int("user_id", order.UserID),
+				zap.Error(err),
+			)
+			return
+		}
+
+		event := model.OrderEvent{
+			EventType:   eventType,
+			OrderID:     order.ID,
+			OrderNumber: order.Number,
+			TotalCost:   order.TotalCost,
+			Status:      order.Status.Key,
+			UserID:      order.UserID,
+			UserEmail:   user.Email,
+			UserName:    user.FirstName + " " + user.LastName,
+			OccurredAt:  time.Now().UTC(),
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := s.publisher.Publish(ctx, strconv.Itoa(order.ID), event); err != nil {
+			logger.GetLogger().Warn("kafka: failed to publish order event",
+				zap.String("event_type", string(eventType)),
+				zap.Int("order_id", order.ID),
+				zap.Error(err),
+			)
+		} else {
+			logger.GetLogger().Info("kafka: order event published",
+				zap.String("event_type", string(eventType)),
+				zap.Int("order_id", order.ID),
+			)
+		}
+	}()
 }
 
 func (s *OrdersService) Create(order model.OrderRequestBody, userID int) (*model.Order, error) {
@@ -44,6 +95,7 @@ func (s *OrdersService) Create(order model.OrderRequestBody, userID int) (*model
 		)
 		result = createdOrder
 		status = logSuccessStatus
+		s.publishEvent(model.OrderEventCreated, createdOrder)
 	}
 
 	_, logErr := s.repo.WriteLog(result, "Create", status, logOrdersTableName)
@@ -132,6 +184,7 @@ func (s *OrdersService) Update(id int, order model.OrderRequestBody, userID int)
 		)
 		result = updatedOrder
 		status = logSuccessStatus
+		s.publishEvent(model.OrderEventUpdated, updatedOrder)
 	}
 
 	_, logErr := s.repo.WriteLog(result, "Update", status, logOrdersTableName)
@@ -167,6 +220,7 @@ func (s *OrdersService) UpdateStatus(
 		)
 		result = updatedOrder
 		status = logSuccessStatus
+		s.publishEvent(model.OrderEventStatusChanged, updatedOrder)
 	}
 
 	_, logErr := s.repo.WriteLog(result, "UpdateStatus", status, logOrdersTableName)

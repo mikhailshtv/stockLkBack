@@ -6,6 +6,7 @@ import (
 
 	"github.com/mikhailshtv/stockLkBack/internal/model"
 	"github.com/mikhailshtv/stockLkBack/internal/repository"
+	"github.com/mikhailshtv/stockLkBack/pkg/kafka/producer"
 )
 
 //go:generate mockgen -source=service.go -destination=mocks/mock.go
@@ -45,9 +46,9 @@ type Service struct {
 	User
 }
 
-func NewService(ctx context.Context, repo *repository.Repository) *Service {
+func NewService(ctx context.Context, repo *repository.Repository, pub producer.EventPublisher) *Service {
 	return &Service{
-		Order:   NewOrdersService(ctx, repo.Order),
+		Order:   NewOrdersService(ctx, repo.Order, repo.User, pub),
 		Product: NewProductsService(ctx, repo.Product),
 		User:    NewUsersService(ctx, repo.User),
 	}
